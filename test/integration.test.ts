@@ -1,21 +1,8 @@
 import { Client } from '../src/client';
 import { PublicKey } from '../src/proto/cachecash_pb';
 
-/**
- * Dummy test
- */
 describe('Integration tests', () => {
-    /*
-    it('works if true is truthy', () => {
-        expect(true).toBeTruthy();
-    });
-    */
-
     it('asdf', async () => {
-        // expect(new DummyClass()).toBeInstanceOf(DummyClass);
-
-        console.log('alive');
-
         const pubkey = new Uint8Array([
             0,
             1,

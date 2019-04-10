@@ -119,12 +119,19 @@ export class Client {
 
     async getObject(path: string): Promise<DataObject> {
         let blockSize = 0;
-        let rangeBegin = 0;
-        let data: number[] = [];
+        let rangeBegin = 0; // this is in chunks
+        let remainingChunks = 1; // we expect at least one chunk
 
-        while (true) {
+        let data;
+        let offset = 0;
+
+        while (remainingChunks > 0) {
             // XXX: `rangeBegin` here must be in bytes.
             let bg = await this.requestBlockGroup(path, rangeBegin * blockSize);
+
+            if (!data) {
+                data = new Uint8Array(bg.metadata.getObjectSize());
+            }
 
             for (let i = 0; i < bg.data.length; i++) {
                 if (bg.blockIdx[i] !== rangeBegin + i) {
@@ -134,23 +141,17 @@ export class Client {
                         }, but expected ${rangeBegin + i} `
                     );
                 }
-                // TODO: find an efficient way to merge all Uint8Arrays
-                // data.push(...bg.data[i]);
-                bg.data[i].forEach(x => {
-                    data.push(x);
-                });
+
+                data.set(bg.data[i], offset);
+                offset += bg.data[i].length;
             }
 
             rangeBegin += bg.data.length;
-
-            if (rangeBegin >= calculateBlockCount(bg.metadata)) {
-                break;
-            }
-
             blockSize = bg.metadata.getBlockSize();
+            remainingChunks = calculateBlockCount(bg.metadata) - rangeBegin;
         }
 
-        return new DataObject(new Uint8Array(data));
+        return new DataObject(data as Uint8Array);
     }
 
     async requestBlockGroup(path: string, rangeBegin: number): Promise<BlockGroup> {
