@@ -1,5 +1,8 @@
+import { Crypto } from '@peculiar/webcrypto';
 import { TicketL2 } from './proto/cachecash_pb';
 import { Puzzle, sliceIVFromSecret, sliceKeyFromSecret } from './puzzle';
+
+const crypto = new Crypto();
 
 export async function encryptTicketL2(p: Puzzle, t: TicketL2): Promise<Uint8Array> {
     let plaintext = t.serializeBinary();

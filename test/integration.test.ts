@@ -117,6 +117,8 @@ describe('Integration tests', () => {
             63
         ]);
 
+        jest.setTimeout(30000);
+
         let pubkey2 = new PublicKey();
         pubkey2.setPublicKey(pubkey);
 
@@ -126,7 +128,14 @@ describe('Integration tests', () => {
         let o = await cl.getObject('/file0.bin');
         console.log('fetch complete; shutting down client');
 
-        console.log(o);
+        function toHexString(byteArray: Uint8Array | ArrayBuffer) {
+            return Array.prototype.map
+                .call(byteArray, function(byte: number) {
+                    return ('0' + (byte & 0xff).toString(16)).slice(-2);
+                })
+                .join('');
+        }
+        console.log(toHexString(o.data.slice(0, 100)));
 
         console.log('completed without error');
     });

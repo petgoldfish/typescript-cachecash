@@ -76,7 +76,7 @@ export async function encryptDataBlock(
     // Set up our cipher.
     let cryptoKey = await crypto.subtle.importKey(
         'raw',
-        new Uint8Array(sessionKey),
+        new Uint8Array([...sessionKey]),
         'AES-CTR',
         true,
         ['encrypt', 'decrypt']
@@ -85,11 +85,11 @@ export async function encryptDataBlock(
     let ciphertext = await crypto.subtle.encrypt(
         {
             name: 'AES-CTR',
-            counter,
+            counter: new Uint8Array(counter),
             length: 128
         },
         cryptoKey,
-        plaintext
+        new Uint8Array(plaintext)
     );
 
     return new Uint8Array(ciphertext);
@@ -116,10 +116,13 @@ export async function keyedPRF(
     let counter = digest.slice(0, AesBlockSize);
     let plaintext = digest.slice(AesBlockSize, 3 * AesBlockSize);
 
-    let cryptoKey = await crypto.subtle.importKey('raw', new Uint8Array(key), 'AES-CBC', true, [
-        'encrypt',
-        'decrypt'
-    ]);
+    let cryptoKey = await crypto.subtle.importKey(
+        'raw',
+        new Uint8Array([...key]),
+        'AES-CBC',
+        true,
+        ['encrypt', 'decrypt']
+    );
 
     let ciphertext = await crypto.subtle.encrypt(
         {
@@ -133,7 +136,7 @@ export async function keyedPRF(
 
     // Our result is the last block of the ciphertext.
     // XXX: Why do we encrypt two blocks if we are only going to use a single block of the ciphertext?
-    return new Uint8Array(ciphertext.slice(0, AesBlockSize));
+    return new Uint8Array(ciphertext.slice(AesBlockSize, AesBlockSize * 2));
 }
 
 function uint32ToLE(num: number): Uint8Array {
@@ -148,7 +151,7 @@ function uint32ToLE(num: number): Uint8Array {
 }
 
 // TODO: this doesn't work yet, numbers only have 53 bits in javascript
-function uint64ToLE(num: number): Uint8Array {
+export function uint64ToLE(num: number): Uint8Array {
     let data = new Uint8Array(8);
 
     data[0] = num & 0xff;

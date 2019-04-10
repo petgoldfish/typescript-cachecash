@@ -120,7 +120,7 @@ export class Client {
     async getObject(path: string): Promise<DataObject> {
         let blockSize = 0;
         let rangeBegin = 0;
-        let data = [];
+        let data: number[] = [];
 
         while (true) {
             // XXX: `rangeBegin` here must be in bytes.
@@ -134,10 +134,14 @@ export class Client {
                         }, but expected ${rangeBegin + i} `
                     );
                 }
-                data.push(...bg.data[i]);
+                // TODO: find an efficient way to merge all Uint8Arrays
+                // data.push(...bg.data[i]);
+                bg.data[i].forEach(x => {
+                    data.push(x);
+                });
             }
 
-            rangeBegin = rangeBegin + bg.data.length;
+            rangeBegin += bg.data.length;
 
             if (rangeBegin >= calculateBlockCount(bg.metadata)) {
                 break;
@@ -214,18 +218,14 @@ export class Client {
             parameters
         );
 
-        console.log('puzzle, goal:', stringify(puzzle.goal));
-        console.log('puzzle, secret:', puzzle.secret);
-        console.log('puzzle, offset:', puzzle.offset);
-        console.log('puzzle, params:', puzzle.params);
-
-        console.log('pre solve');
         // TODO: rangeBegin, rangeEnd missing?
         let solution = await puzzle.solve(parameters, singleEncryptedBlocks);
-        console.log('post solve');
 
         // Decrypt L2 ticket
-        let ticketL2 = await decryptTicketL2(solution.secret, bundle.getEncryptedTicketL2_asU8());
+        let ticketL2 = await decryptTicketL2(
+            solution.secret,
+            new Uint8Array(bundle.getEncryptedTicketL2_asU8())
+        );
 
         // Send the L2 ticket to each cache.
         // XXX: This should not be serialized.
