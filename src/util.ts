@@ -1,16 +1,16 @@
 import { Crypto } from '@peculiar/webcrypto';
 import {
-    ClientCacheRequest,
-    TicketBundle,
-    TicketBundleRemainder,
-    TicketRequest,
+    PublicKey,
     TicketL1,
     TicketL2,
     TicketL2Info,
-    TicketBundleSubdigests,
-    PublicKey,
     BlockKey,
-    ColocationPuzzleInfo
+    TicketRequest,
+    ColocationPuzzleInfo,
+    TicketBundleSubdigests,
+    TicketBundleRemainder,
+    TicketBundle,
+    ClientCacheRequest
 } from './proto/cachecash_pb';
 
 const crypto = new Crypto();

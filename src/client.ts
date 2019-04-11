@@ -3,21 +3,21 @@ import { NodeHttpTransport } from '@improbable-eng/grpc-web-node-http-transport'
 import isNode from 'detect-node';
 
 import {
-    ContentRequest,
-    ContentResponse,
-    ClientCacheRequest,
-    ClientCacheResponseData,
-    TicketL2Info,
     ObjectMetadata,
-    TicketBundle,
-    CacheInfo,
-    TicketBundleRemainder,
-    ColocationPuzzleInfo,
     ClientCacheResponseL1,
     ClientCacheResponseL2,
+    ClientCacheRequest,
+    ClientCacheResponseData,
+    ContentRequest,
+    ContentResponse,
     BlockKey,
-    PublicKey,
-    NetworkAddress
+    TicketBundleRemainder,
+    TicketL2Info,
+    ColocationPuzzleInfo,
+    NetworkAddress,
+    CacheInfo,
+    TicketBundle,
+    PublicKey
 } from './proto/cachecash_pb';
 import * as util from './util';
 import { Puzzle, Parameters } from './puzzle';
