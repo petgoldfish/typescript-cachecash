@@ -26,14 +26,14 @@
     "node": ">=6.0.0"
   },
   "scripts": {
-    "clean": "rm -rf browser dist tsout",
+    "clean": "rm -rf browser dist tsout demoout",
     "compile": "tsc -p .",
     "bundle:browser": "parcel build -d browser --out-file browser.js --global cachecash src/index.ts",
     "bundle:node": "parcel build --target node src/index.ts",
     "build": "npm run compile && npm run bundle:browser && npm run bundle:node",
     "lint": "tslint  --project tsconfig.json -t codeFrame 'src/**/*.ts' 'test/**/*.ts'",
     "prebuild": "rimraf dist",
-    "start": "rollup -c rollup.config.ts -w",
+    "start": "npm run build && parcel serve -d demoout demo/basic/index.html",
     "test": "jest --coverage",
     "test:watch": "jest --coverage --watch",
     "test:prod": "npm run lint && npm run test -- --no-cache",
