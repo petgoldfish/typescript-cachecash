@@ -20,15 +20,13 @@ module.exports = {
     ],
     "coverageThreshold": {
         "global": {
-            "branches": 40,
-            "functions": 45,
-            "lines": 45,
-            "statements": 45
+            "branches": 60,
+            "functions": 55,
+            "lines": 65,
+            "statements": 65
         }
     },
     "collectCoverageFrom": [
         "src/*.{js,ts}"
     ]
 };
-
-// "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx|js)$",

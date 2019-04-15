@@ -8,7 +8,7 @@ import {
     runPuzzle,
     equalBuffers
 } from '../src/puzzle';
-import { AesBlockSize } from '../src/util';
+import { AesBlockSize } from '../src/digest';
 import { Crypto } from '@peculiar/webcrypto';
 
 const crypto = new Crypto();

@@ -209,6 +209,7 @@ export async function buildClientCacheRequest(
     } else if (subMsg instanceof TicketL2Info) {
         r.setTicketL2(subMsg);
     } else {
+        // XXX: this line is unreachable due to typescript
         throw new Error('unexpected submessage type');
     }
 

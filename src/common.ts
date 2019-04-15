@@ -15,7 +15,7 @@ export async function encryptTicketL2(p: Puzzle, t: TicketL2): Promise<Uint8Arra
     let ciphertext = await crypto.subtle.encrypt(
         {
             name: 'AES-CTR',
-            counter: p.iv,
+            counter: p.iv(),
             length: 128
         },
         cryptoKey,

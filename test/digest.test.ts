@@ -1,5 +1,5 @@
 // TODO: move this to digest module
-import * as util from '../src/util';
+import * as util from '../src/digest';
 import {
     TicketBundleSubdigests,
     TicketRequest,
@@ -9,7 +9,7 @@ import {
     TicketBundleRemainder,
     TicketBundle,
     TicketL1
-} from '../src/proto/cachecash_pb';
+} from '../src';
 import { Crypto } from '@peculiar/webcrypto';
 
 const crypto = new Crypto();

@@ -19,7 +19,7 @@ import {
     TicketBundle,
     PublicKey
 } from './proto/cachecash_pb';
-import * as util from './util';
+import * as util from './digest';
 import { Puzzle, Parameters } from './puzzle';
 import { ClientPublisher, ClientCache } from './proto/cachecash_pb_service';
 import { decryptTicketL2 } from './common';

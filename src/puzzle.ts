@@ -1,4 +1,4 @@
-import { AesBlockSize, encryptBlock } from './util';
+import { AesBlockSize, encryptBlock } from './digest';
 import { Crypto } from '@peculiar/webcrypto';
 
 const crypto = new Crypto();
