@@ -162,12 +162,20 @@ export class Puzzle {
     }
 
     iv(): Uint8Array {
-        return this.secret.slice(0, IVSize);
+        return sliceIVFromSecret(this.secret);
     }
 
     key(): Uint8Array {
-        return this.secret.slice(IVSize, IVSize + KeySize);
+        return sliceKeyFromSecret(this.secret);
     }
+}
+
+export function sliceIVFromSecret(secret: Uint8Array): Uint8Array {
+    return secret.slice(0, IVSize);
+}
+
+export function sliceKeyFromSecret(secret: Uint8Array): Uint8Array {
+    return secret.slice(IVSize, IVSize + KeySize);
 }
 
 class Result {

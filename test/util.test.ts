@@ -39,4 +39,55 @@ describe('util test', () => {
         }
         expect(error).toEqual(new Error('cleartext must be exactly one block in length'));
     });
+
+    it('keyedPRF', async () => {
+        let blockIdx = 34;
+        let seqNo = 9;
+        let key = new Uint8Array([
+            0x52,
+            0x39,
+            0xcd,
+            0xd3,
+            0x4e,
+            0xd4,
+            0x30,
+            0xf9,
+            0x6b,
+            0xe3,
+            0x59,
+            0x2b,
+            0xe7,
+            0x39,
+            0x4a,
+            0x09
+        ]);
+
+        let iv = await util.keyedPRF(util.uint64ToLE(blockIdx), seqNo, key);
+        expect(iv).toEqual(
+            new Uint8Array([
+                0x28,
+                0xd6,
+                0x76,
+                0x87,
+                0x78,
+                0xc0,
+                0x25,
+                0x59,
+                0x1a,
+                0xd7,
+                0xa8,
+                0x8f,
+                0xe8,
+                0x91,
+                0x24,
+                0x16
+            ])
+        );
+    });
+
+    it('Uint64ToLE', () => {
+        let blockIdx = 34;
+        let x = util.uint64ToLE(blockIdx);
+        expect(x).toEqual(new Uint8Array([0x22, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]));
+    });
 });
