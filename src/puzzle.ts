@@ -2,6 +2,8 @@ import { AesBlockSize, encryptBlock } from './digest';
 import { Crypto } from '@peculiar/webcrypto';
 
 const crypto = new Crypto();
+// const crypto = window.crypto;
+
 export const Sha2Size384 = 48; // sha512.Size384
 export const IVSize = AesBlockSize;
 export const KeySize = 16;
@@ -103,27 +105,7 @@ export class Puzzle {
             );
         }
 
-        // Try all possible starting offsets and look for one that produces the result/goal value we're looking for.
-        for (let offset = 0; offset < blocks[0].length / AesBlockSize; offset++) {
-            let result = await runPuzzle(
-                params.rounds,
-                blocks.length,
-                offset,
-                async (blockIdx: number, offset: number): Promise<Uint8Array> => {
-                    offset = offset % (blocks[blockIdx].length / AesBlockSize);
-                    return blocks[blockIdx].slice(
-                        offset * AesBlockSize,
-                        (offset + 1) * AesBlockSize
-                    );
-                }
-            );
-
-            if (equalBuffers(this.goal, result.goal)) {
-                return new Solution(result.secret, offset);
-            }
-        }
-
-        throw new Error('no solution found');
+        return runPuzzleFastSolve(blocks, params, this.goal);
     }
 
     async verify(blocks: Uint8Array[], solution: Solution): Promise<Result> {
@@ -219,7 +201,7 @@ export async function runPuzzle(
     offset: number,
     getBlockFn: (i: number, offset: number) => Promise<Uint8Array>
 ): Promise<Result> {
-    let curLoc: Uint8Array = new Uint8Array(new ArrayBuffer(Sha2Size384));
+    let curLoc: Uint8Array = new Uint8Array(Sha2Size384);
     let prevLoc: Uint8Array = curLoc;
 
     for (let i = 0; i < rounds * blockQty - 1; i++) {
@@ -238,6 +220,48 @@ export async function runPuzzle(
     }
 
     return new Result(curLoc, prevLoc);
+}
+
+export async function runPuzzleFastSolve(
+    blocks: Uint8Array[],
+    params: Parameters,
+    goal: Uint8Array
+): Promise<Solution> {
+    // Try all possible starting offsets and look for one that produces the result/goal value we're looking for.
+    for (let offset = 0; offset < blocks[0].length / AesBlockSize; offset++) {
+        let rounds = params.rounds;
+        let blockQty = blocks.length;
+        let offset3 = offset;
+
+        let curLoc: Uint8Array = new Uint8Array(Sha2Size384);
+        let prevLoc: Uint8Array = curLoc;
+
+        for (let i = 0; i < rounds * blockQty - 1; i++) {
+            const blockIdx = i % blockQty;
+            let offset2 = offset3 % (blocks[blockIdx].length / AesBlockSize);
+            const subblock = blocks[blockIdx].slice(
+                offset2 * AesBlockSize,
+                (offset2 + 1) * AesBlockSize
+            );
+
+            prevLoc = curLoc;
+
+            let data = new Uint8Array(curLoc.length + subblock.length);
+            data.set(curLoc);
+            data.set(subblock, curLoc.length);
+
+            let digest = await crypto.subtle.digest('SHA-384', data);
+
+            curLoc = new Uint8Array(digest);
+            offset3 = new DataView(digest).getUint32(curLoc.length - 4, true); // For little endian
+        }
+
+        if (equalBuffers(goal, curLoc)) {
+            return new Solution(prevLoc, offset);
+        }
+    }
+
+    throw new Error('no solution found');
 }
 
 function getCipherBlock(dataBlock: Uint8Array, cipherBlockIdx: number): Uint8Array {

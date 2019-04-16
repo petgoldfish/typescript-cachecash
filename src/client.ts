@@ -219,8 +219,11 @@ export class Client {
             parameters
         );
 
+        console.log('Solving puzzle');
+        console.time('Puzzle solved');
         // TODO: rangeBegin, rangeEnd missing?
         let solution = await puzzle.solve(parameters, singleEncryptedBlocks);
+        console.timeEnd('Puzzle solved');
 
         // Decrypt L2 ticket
         let ticketL2 = await decryptTicketL2(
