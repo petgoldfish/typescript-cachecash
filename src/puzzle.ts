@@ -1,8 +1,6 @@
 import { AesBlockSize, encryptBlock } from './digest';
-import { Crypto } from '@peculiar/webcrypto';
 
-const crypto = new Crypto();
-// const crypto = window.crypto;
+const sha384 = require('sha.js').sha384;
 
 export const Sha2Size384 = 48; // sha512.Size384
 export const IVSize = AesBlockSize;
@@ -209,14 +207,13 @@ export async function runPuzzle(
         const subblock = await getBlockFn(blockIdx, offset);
         prevLoc = curLoc;
 
-        let data = new Uint8Array(curLoc.length + subblock.length);
-        data.set(curLoc);
-        data.set(subblock, curLoc.length);
-
-        let digest = await crypto.subtle.digest('SHA-384', data);
+        const h = new sha384();
+        h.update(curLoc);
+        h.update(subblock);
+        const digest = h.digest();
 
         curLoc = new Uint8Array(digest);
-        offset = new DataView(digest).getUint32(curLoc.length - 4, true); // For little endian
+        offset = new DataView(curLoc.buffer).getUint32(curLoc.length - 4, true); // For little endian
     }
 
     return new Result(curLoc, prevLoc);
@@ -238,22 +235,20 @@ export async function runPuzzleFastSolve(
 
         for (let i = 0; i < rounds * blockQty - 1; i++) {
             const blockIdx = i % blockQty;
-            let offset2 = offset3 % (blocks[blockIdx].length / AesBlockSize);
-            const subblock = blocks[blockIdx].slice(
-                offset2 * AesBlockSize,
-                (offset2 + 1) * AesBlockSize
-            );
+            const offset2 = offset3 % (blocks[blockIdx].length / AesBlockSize);
+            const begin = offset2 * AesBlockSize;
+            const end = (offset2 + 1) * AesBlockSize;
+            const subblock = blocks[blockIdx].slice(begin, end);
 
             prevLoc = curLoc;
 
-            let data = new Uint8Array(curLoc.length + subblock.length);
-            data.set(curLoc);
-            data.set(subblock, curLoc.length);
-
-            let digest = await crypto.subtle.digest('SHA-384', data);
+            const h = new sha384();
+            h.update(curLoc);
+            h.update(subblock);
+            let digest = h.digest();
 
             curLoc = new Uint8Array(digest);
-            offset3 = new DataView(digest).getUint32(curLoc.length - 4, true); // For little endian
+            offset3 = new DataView(curLoc.buffer).getUint32(curLoc.length - 4, true); // For little endian
         }
 
         if (equalBuffers(goal, curLoc)) {

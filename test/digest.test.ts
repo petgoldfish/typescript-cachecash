@@ -10,9 +10,7 @@ import {
     TicketBundle,
     TicketL1
 } from '../src';
-import { Crypto } from '@peculiar/webcrypto';
-
-const crypto = new Crypto();
+const sha384 = require('sha.js').sha384;
 
 describe('digest calculation', () => {
     it('TicketBundleSubdigestsCanonicalDigest', async () => {
@@ -1037,7 +1035,10 @@ describe('digest calculation', () => {
             ])
         );
 
-        let digest = await crypto.subtle.digest('SHA-384', digestInput);
+        const h = new sha384();
+        h.update(digestInput);
+        const digest = h.digest();
+
         expect(new Uint8Array(digest)).toEqual(
             new Uint8Array([
                 0x18,

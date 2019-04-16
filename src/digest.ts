@@ -1,4 +1,3 @@
-import { Crypto } from '@peculiar/webcrypto';
 import {
     PublicKey,
     TicketL1,
@@ -12,8 +11,8 @@ import {
     TicketBundle,
     ClientCacheRequest
 } from './proto/cachecash_pb';
-
-const crypto = new Crypto();
+const sha384 = require('sha.js').sha384;
+const aesjs = require('aes-js');
 
 export const AesBlockSize = 16; // aes.BlockSize
 
@@ -28,27 +27,15 @@ export async function encryptBlock(
         throw new Error('cleartext must be exactly one block in length');
     }
 
-    let cryptoKey = await crypto.subtle.importKey('raw', key, 'AES-CTR', true, [
-        'encrypt',
-        'decrypt'
-    ]);
-
     // Duplicate iv so that we don't mutate the array backing the slice we were passed.
     let counter = new Uint8Array(iv.length);
     counter.set(iv);
     incrementIV(counter, ctr);
 
-    let ciphertext = await crypto.subtle.encrypt(
-        {
-            name: 'AES-CTR',
-            counter,
-            length: 128
-        },
-        cryptoKey,
-        plaintext
-    );
+    const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(counter));
+    const ciphertext = aesCtr.encrypt(plaintext);
 
-    return new Uint8Array(ciphertext);
+    return ciphertext;
 }
 
 export function incrementIV(iv: Uint8Array, counter: number) {
@@ -71,28 +58,12 @@ export async function encryptDataBlock(
     sessionKey: Uint8Array,
     plaintext: Uint8Array
 ): Promise<Uint8Array> {
-    let counter = await keyedPRF(uint64ToLE(blockIdx), reqSeqNo, sessionKey);
+    const counter = await keyedPRF(uint64ToLE(blockIdx), reqSeqNo, sessionKey);
 
-    // Set up our cipher.
-    let cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        new Uint8Array([...sessionKey]),
-        'AES-CTR',
-        true,
-        ['encrypt', 'decrypt']
-    );
+    const aesCtr = new aesjs.ModeOfOperation.ctr(sessionKey, new aesjs.Counter(counter));
+    const ciphertext = aesCtr.encrypt(plaintext);
 
-    let ciphertext = await crypto.subtle.encrypt(
-        {
-            name: 'AES-CTR',
-            counter: new Uint8Array(counter),
-            length: 128
-        },
-        cryptoKey,
-        new Uint8Array(plaintext)
-    );
-
-    return new Uint8Array(ciphertext);
+    return ciphertext;
 }
 
 export async function keyedPRF(
@@ -110,29 +81,16 @@ export async function keyedPRF(
 
     data.set(prfInput, 4);
 
-    let digest = await crypto.subtle.digest('SHA-384', data);
+    let h = new sha384();
+    h.update(data);
+    let digest = h.digest();
 
     // We use the first portion of the digest as the IV, and the following part as the plaintext to be encrypted.
     let counter = digest.slice(0, AesBlockSize);
     let plaintext = digest.slice(AesBlockSize, 3 * AesBlockSize);
 
-    let cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        new Uint8Array([...key]),
-        'AES-CBC',
-        true,
-        ['encrypt', 'decrypt']
-    );
-
-    let ciphertext = await crypto.subtle.encrypt(
-        {
-            name: 'AES-CBC',
-            iv: new Uint8Array(counter),
-            length: 128
-        },
-        cryptoKey,
-        new Uint8Array(plaintext)
-    );
+    const aesCtr = new aesjs.ModeOfOperation.cbc(key, counter);
+    const ciphertext = aesCtr.encrypt(plaintext);
 
     // Our result is the last block of the ciphertext.
     // XXX: Why do we encrypt two blocks if we are only going to use a single block of the ciphertext?
@@ -224,57 +182,49 @@ export async function getSubdigests(m: TicketBundle): Promise<TicketBundleSubdig
     );
 
     r.setTicketRequestDigestList(
-        await Promise.all(
-            m.getTicketRequestList().map(subMsg => ticketRequestCanonicalDigest(subMsg))
-        )
+        m.getTicketRequestList().map(subMsg => ticketRequestCanonicalDigest(subMsg))
     );
 
-    r.setTicketL1DigestList(
-        await Promise.all(m.getTicketL1List().map(subMsg => ticketL1CanonicalDigest(subMsg)))
-    );
+    r.setTicketL1DigestList(m.getTicketL1List().map(subMsg => ticketL1CanonicalDigest(subMsg)));
 
     return r;
 }
 
 export async function canonicalEncryptedTicketL2Digest(m: TicketBundle): Promise<Uint8Array> {
-    let l2 = new Uint8Array(m.getEncryptedTicketL2_asU8());
-    let digest = await crypto.subtle.digest('SHA-384', l2);
+    let h = new sha384();
+    h.update(m.getEncryptedTicketL2_asU8());
+    let digest = h.digest();
     return new Uint8Array(digest);
 }
 
 export async function ticketBundleSubdigestsCanonicalDigest(
     m: TicketBundleSubdigests
 ): Promise<Uint8Array> {
-    let data: number[] = [];
+    let h = new sha384();
+    h.update(await canonicalTicketRequestDigest(m));
+    h.update(await canonicalTicketL1Digest(m));
+    h.update(m.getEncryptedTicketL2Digest_asU8());
+    h.update(m.getRemainderDigest_asU8());
+    let digest = h.digest();
 
-    data.push(...(await canonicalTicketRequestDigest(m)));
-    data.push(...(await canonicalTicketL1Digest(m)));
-    data.push(...m.getEncryptedTicketL2Digest_asU8());
-    data.push(...m.getRemainderDigest_asU8());
-
-    let digest = await crypto.subtle.digest('SHA-384', new Uint8Array(data));
     return new Uint8Array(digest);
 }
 
 export async function canonicalTicketRequestDigest(m: TicketBundleSubdigests): Promise<Uint8Array> {
-    let data: number[] = [];
-
+    let h = new sha384();
     m.getTicketRequestDigestList_asU8().forEach(d => {
-        data.push(...d);
+        h.update(d);
     });
-
-    let digest = await crypto.subtle.digest('SHA-384', new Uint8Array(data));
+    let digest = h.digest();
     return new Uint8Array(digest);
 }
 
 export async function canonicalTicketL1Digest(m: TicketBundleSubdigests): Promise<Uint8Array> {
-    let data: number[] = [];
-
+    let h = new sha384();
     m.getTicketL1DigestList_asU8().forEach(d => {
-        data.push(...d);
+        h.update(d);
     });
-
-    let digest = await crypto.subtle.digest('SHA-384', new Uint8Array(data));
+    let digest = h.digest();
     return new Uint8Array(digest);
 }
 
@@ -302,15 +252,15 @@ func(m * TicketBundleSubdigests) ContainsTicketL1Digest(d[]byte) bool {
 export async function ticketBundleRemainderCanonicalDigest(
     m: TicketBundleRemainder
 ): Promise<Uint8Array> {
-    let data: number[] = [];
+    let h = new sha384();
     // _, _ = h.Write(m.PublisherPublicKey.PublicKey)
     // _, _ = h.Write(m.EscrowPublicKey.PublicKey)
-    data.push(...addPuzzleInfoCanonicalDigest(m.getPuzzleInfo() as ColocationPuzzleInfo));
-
-    let digest = await crypto.subtle.digest('SHA-384', new Uint8Array(data));
+    h.update(addPuzzleInfoCanonicalDigest(m.getPuzzleInfo() as ColocationPuzzleInfo));
+    let digest = h.digest();
     return new Uint8Array(digest);
 }
 
+// TODO: update the hasher directly
 export function addPuzzleInfoCanonicalDigest(m: ColocationPuzzleInfo): Uint8Array {
     let data: number[] = [];
 
@@ -322,31 +272,33 @@ export function addPuzzleInfoCanonicalDigest(m: ColocationPuzzleInfo): Uint8Arra
     return new Uint8Array(data);
 }
 
-export async function ticketRequestCanonicalDigest(m: TicketRequest): Promise<Uint8Array> {
-    let data: number[] = [];
-    data.push(...uint64ToLE(m.getBlockIdx()));
-    data.push(...(m.getInnerKey() as BlockKey).getKey_asU8());
-    data.push(...(m.getCachePublicKey() as PublicKey).getPublicKey_asU8());
-
-    let digest = await crypto.subtle.digest('SHA-384', new Uint8Array(data));
+export function ticketRequestCanonicalDigest(m: TicketRequest): Uint8Array {
+    let h = new sha384();
+    h.update(uint64ToLE(m.getBlockIdx()));
+    h.update((m.getInnerKey() as BlockKey).getKey_asU8());
+    h.update((m.getCachePublicKey() as PublicKey).getPublicKey_asU8());
+    let digest = h.digest();
     return new Uint8Array(digest);
 }
 
-export async function ticketL1CanonicalDigest(m: TicketL1): Promise<Uint8Array> {
-    let data: number[] = [];
-    data.push(...uint64ToLE(m.getTicketNo()));
-    data.push(...(m.getCachePublicKey() as PublicKey).getPublicKey_asU8());
-
-    let digest = await crypto.subtle.digest('SHA-384', new Uint8Array(data));
+export function ticketL1CanonicalDigest(m: TicketL1): Uint8Array {
+    let h = new sha384();
+    h.update(uint64ToLE(m.getTicketNo()));
+    h.update((m.getCachePublicKey() as PublicKey).getPublicKey_asU8());
+    let digest = h.digest();
     return new Uint8Array(digest);
 }
 
 export async function ticketL2CanonicalDigest(m: TicketL2): Promise<Uint8Array> {
-    let digest = await crypto.subtle.digest('SHA-384', m.getNonce_asU8());
+    let h = new sha384();
+    h.update(m.getNonce_asU8());
+    let digest = h.digest();
     return new Uint8Array(digest);
 }
 
 export async function encryptedTicketL2Digest(m: TicketL2Info): Promise<Uint8Array> {
-    let digest = await crypto.subtle.digest('SHA-384', m.getEncryptedTicketL2_asU8());
+    let h = new sha384();
+    h.update(m.getEncryptedTicketL2_asU8());
+    let digest = h.digest();
     return new Uint8Array(digest);
 }

@@ -9,16 +9,15 @@ import {
     equalBuffers
 } from '../src/puzzle';
 import { AesBlockSize } from '../src/digest';
-import { Crypto } from '@peculiar/webcrypto';
+const aesjs = require('aes-js');
+const randomBytes = require('randombytes');
 
-const crypto = new Crypto();
 const BlockQty = 8;
 const BlockSize = AesBlockSize * 1024;
 
 function randBytes(n: number): Uint8Array {
-    let bytes = new Uint8Array(n);
-    crypto.getRandomValues(bytes);
-    return bytes;
+    const bytes = randomBytes(n);
+    return new Uint8Array([...bytes]);
 }
 
 async function captureAsyncThrow(f: Function, ...args: any[]): Promise<Error> {
@@ -50,22 +49,10 @@ async function setupSuite() {
         plaintextBlocks.push(b);
 
         // encrypt block
-        let cryptoKey = await crypto.subtle.importKey('raw', k, 'AES-CTR', true, [
-            'encrypt',
-            'decrypt'
-        ]);
+        const aesCtr = new aesjs.ModeOfOperation.ctr(k, new aesjs.Counter(iv));
+        const cb = aesCtr.encrypt(b);
 
-        let cb = await crypto.subtle.encrypt(
-            {
-                name: 'AES-CTR',
-                counter: iv,
-                length: 128
-            },
-            cryptoKey,
-            b
-        );
-
-        ciphertextBlocks.push(new Uint8Array(cb));
+        ciphertextBlocks.push(cb);
     }
 
     async function generateAndSolve(rangeBegin: number, rangeEnd: number) {
