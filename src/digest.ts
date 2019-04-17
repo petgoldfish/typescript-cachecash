@@ -17,12 +17,12 @@ const aesjs = require('aes-js');
 export const AesBlockSize = 16; // aes.BlockSize
 
 // TODO: encryptDataBlock is used to encrypt and decrypt
-export async function encryptBlock(
+export function encryptBlock(
     plaintext: Uint8Array,
     key: Uint8Array,
     iv: Uint8Array,
     ctr: number
-): Promise<Uint8Array> {
+): Uint8Array {
     if (plaintext.length !== AesBlockSize) {
         throw new Error('cleartext must be exactly one block in length');
     }
@@ -52,13 +52,13 @@ export function incrementIV(iv: Uint8Array, counter: number) {
 // XXX: This function and EncryptBlock, which encrypts a signle *cipher* block, need names that are less likely to cause
 // confusion.
 // Also decrypts blocks, since we're using AES in the CTR mode.
-export async function encryptDataBlock(
+export function encryptDataBlock(
     blockIdx: number,
     reqSeqNo: number,
     sessionKey: Uint8Array,
     plaintext: Uint8Array
-): Promise<Uint8Array> {
-    const counter = await keyedPRF(uint64ToLE(blockIdx), reqSeqNo, sessionKey);
+): Uint8Array {
+    const counter = keyedPRF(uint64ToLE(blockIdx), reqSeqNo, sessionKey);
 
     const aesCtr = new aesjs.ModeOfOperation.ctr(sessionKey, new aesjs.Counter(counter));
     const ciphertext = aesCtr.encrypt(plaintext);
@@ -66,11 +66,7 @@ export async function encryptDataBlock(
     return ciphertext;
 }
 
-export async function keyedPRF(
-    prfInput: Uint8Array,
-    requestSeqNo: number,
-    key: Uint8Array
-): Promise<Uint8Array> {
+export function keyedPRF(prfInput: Uint8Array, requestSeqNo: number, key: Uint8Array): Uint8Array {
     let data = new Uint8Array(4 + prfInput.length);
 
     // XXX: Why is it important that we feed requestSeqNo in here?
@@ -150,13 +146,13 @@ func(m * TicketBundle) BuildClientCacheRequest(subMsg proto.Message)(* ClientCac
 }
 */
 
-export async function buildClientCacheRequest(
+export function buildClientCacheRequest(
     m: TicketBundle,
     subMsg: TicketRequest | TicketL1 | TicketL2Info
-): Promise<ClientCacheRequest> {
+): ClientCacheRequest {
     let r = new ClientCacheRequest();
     r.setBundleRemainder(m.getRemainder());
-    r.setTicketBundleSubdigests(await getSubdigests(m));
+    r.setTicketBundleSubdigests(getSubdigests(m));
     r.setBundleSig(m.getBatchSig());
     r.setBundleSignerCert(m.getBundleSignerCert());
 
@@ -174,12 +170,13 @@ export async function buildClientCacheRequest(
     return r;
 }
 
-export async function getSubdigests(m: TicketBundle): Promise<TicketBundleSubdigests> {
+export function getSubdigests(m: TicketBundle): TicketBundleSubdigests {
     let r = new TicketBundleSubdigests();
-    r.setEncryptedTicketL2Digest(await canonicalEncryptedTicketL2Digest(m));
-    r.setRemainderDigest(
-        await ticketBundleRemainderCanonicalDigest(m.getRemainder() as TicketBundleRemainder)
+    r.setEncryptedTicketL2Digest(canonicalEncryptedTicketL2Digest(m));
+    const remainderDigest = ticketBundleRemainderCanonicalDigest(
+        m.getRemainder() as TicketBundleRemainder
     );
+    r.setRemainderDigest(remainderDigest);
 
     r.setTicketRequestDigestList(
         m.getTicketRequestList().map(subMsg => ticketRequestCanonicalDigest(subMsg))
@@ -190,19 +187,17 @@ export async function getSubdigests(m: TicketBundle): Promise<TicketBundleSubdig
     return r;
 }
 
-export async function canonicalEncryptedTicketL2Digest(m: TicketBundle): Promise<Uint8Array> {
+export function canonicalEncryptedTicketL2Digest(m: TicketBundle): Uint8Array {
     let h = new sha384();
     h.update(m.getEncryptedTicketL2_asU8());
     let digest = h.digest();
     return new Uint8Array(digest);
 }
 
-export async function ticketBundleSubdigestsCanonicalDigest(
-    m: TicketBundleSubdigests
-): Promise<Uint8Array> {
+export function ticketBundleSubdigestsCanonicalDigest(m: TicketBundleSubdigests): Uint8Array {
     let h = new sha384();
-    h.update(await canonicalTicketRequestDigest(m));
-    h.update(await canonicalTicketL1Digest(m));
+    h.update(canonicalTicketRequestDigest(m));
+    h.update(canonicalTicketL1Digest(m));
     h.update(m.getEncryptedTicketL2Digest_asU8());
     h.update(m.getRemainderDigest_asU8());
     let digest = h.digest();
@@ -210,7 +205,7 @@ export async function ticketBundleSubdigestsCanonicalDigest(
     return new Uint8Array(digest);
 }
 
-export async function canonicalTicketRequestDigest(m: TicketBundleSubdigests): Promise<Uint8Array> {
+export function canonicalTicketRequestDigest(m: TicketBundleSubdigests): Uint8Array {
     let h = new sha384();
     m.getTicketRequestDigestList_asU8().forEach(d => {
         h.update(d);
@@ -219,7 +214,7 @@ export async function canonicalTicketRequestDigest(m: TicketBundleSubdigests): P
     return new Uint8Array(digest);
 }
 
-export async function canonicalTicketL1Digest(m: TicketBundleSubdigests): Promise<Uint8Array> {
+export function canonicalTicketL1Digest(m: TicketBundleSubdigests): Uint8Array {
     let h = new sha384();
     m.getTicketL1DigestList_asU8().forEach(d => {
         h.update(d);
@@ -249,9 +244,7 @@ func(m * TicketBundleSubdigests) ContainsTicketL1Digest(d[]byte) bool {
 */
 
 // XXX: Update this once the message contents are more stable!
-export async function ticketBundleRemainderCanonicalDigest(
-    m: TicketBundleRemainder
-): Promise<Uint8Array> {
+export function ticketBundleRemainderCanonicalDigest(m: TicketBundleRemainder): Uint8Array {
     let h = new sha384();
     // _, _ = h.Write(m.PublisherPublicKey.PublicKey)
     // _, _ = h.Write(m.EscrowPublicKey.PublicKey)
@@ -289,14 +282,14 @@ export function ticketL1CanonicalDigest(m: TicketL1): Uint8Array {
     return new Uint8Array(digest);
 }
 
-export async function ticketL2CanonicalDigest(m: TicketL2): Promise<Uint8Array> {
+export function ticketL2CanonicalDigest(m: TicketL2): Uint8Array {
     let h = new sha384();
     h.update(m.getNonce_asU8());
     let digest = h.digest();
     return new Uint8Array(digest);
 }
 
-export async function encryptedTicketL2Digest(m: TicketL2Info): Promise<Uint8Array> {
+export function encryptedTicketL2Digest(m: TicketL2Info): Uint8Array {
     let h = new sha384();
     h.update(m.getEncryptedTicketL2_asU8());
     let digest = h.digest();

@@ -36,21 +36,18 @@ describe('util test', () => {
         31
     ]);
 
-    it('encryptTicketL2', async () => {
+    it('encryptTicketL2', () => {
         let puzzle = new Puzzle(new Uint8Array([]), secret, 1, new Parameters(2, 0, 0));
         let l2 = new TicketL2();
         l2.setNonce('hello world');
 
-        let cipher = await encryptTicketL2(puzzle, l2);
+        let cipher = encryptTicketL2(puzzle, l2);
 
         expect(cipher).toEqual(new Uint8Array([142, 83, 80, 152, 21, 143, 240, 36, 150]));
     });
 
-    it('decryptTicketL2', async () => {
-        let l2 = await decryptTicketL2(
-            secret,
-            new Uint8Array([142, 83, 80, 152, 21, 143, 240, 36, 150])
-        );
+    it('decryptTicketL2', () => {
+        let l2 = decryptTicketL2(secret, new Uint8Array([142, 83, 80, 152, 21, 143, 240, 36, 150]));
 
         let expected = new TicketL2();
         expected.setNonce(new Uint8Array([133, 233, 101, 163, 10, 43, 149]));

@@ -26,18 +26,18 @@ describe('util test', () => {
     });
 
     // keep this function in sync with go-cachecash
-    it('encrypt block', async () => {
+    it('encrypt block', () => {
         let plaintext = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
         let key = new Uint8Array([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
         let iv = new Uint8Array([8, 7, 6, 5, 4, 3, 2, 1, 16, 15, 14, 13, 12, 11, 10, 9]);
 
-        let ciphertext = await util.encryptBlock(plaintext, key, iv, 23);
+        let ciphertext = util.encryptBlock(plaintext, key, iv, 23);
         expect(ciphertext).toEqual(
             new Uint8Array([7, 231, 85, 127, 217, 165, 18, 114, 59, 80, 215, 36, 96, 107, 189, 87])
         );
     });
 
-    it('throws on incorrect blocksize', async () => {
+    it('throws on incorrect blocksize', () => {
         let plaintext = new Uint8Array([1, 2, 3, 4]);
         let key = new Uint8Array([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
         let iv = new Uint8Array([8, 7, 6, 5, 4, 3, 2, 1, 16, 15, 14, 13, 12, 11, 10, 9]);
@@ -45,14 +45,14 @@ describe('util test', () => {
         // assert error in async function
         let error;
         try {
-            await util.encryptBlock(plaintext, key, iv, 23);
+            util.encryptBlock(plaintext, key, iv, 23);
         } catch (e) {
             error = e;
         }
         expect(error).toEqual(new Error('cleartext must be exactly one block in length'));
     });
 
-    it('keyedPRF', async () => {
+    it('keyedPRF', () => {
         const blockIdx = 34;
         const seqNo = 9;
         const key = new Uint8Array([
@@ -74,7 +74,7 @@ describe('util test', () => {
             0x09
         ]);
 
-        const iv = await util.keyedPRF(util.uint64ToLE(blockIdx), seqNo, key);
+        const iv = util.keyedPRF(util.uint64ToLE(blockIdx), seqNo, key);
         expect(iv).toEqual(
             new Uint8Array([
                 0x28,
@@ -103,7 +103,7 @@ describe('util test', () => {
         expect(x).toEqual(new Uint8Array([0x22, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]));
     });
 
-    it('encryptDataBlock', async () => {
+    it('encryptDataBlock', () => {
         const blockIdx = 34;
         const seqNo = 9;
         const key = new Uint8Array([
@@ -143,17 +143,17 @@ describe('util test', () => {
             0x10
         ]);
 
-        const cipher = await util.encryptDataBlock(blockIdx, seqNo, key, plaintext);
+        const cipher = util.encryptDataBlock(blockIdx, seqNo, key, plaintext);
         expect(cipher).toEqual(
             new Uint8Array([147, 173, 195, 133, 47, 251, 1, 68, 142, 164, 72, 71, 183, 78, 52, 82])
         );
     });
 
-    it('ticketL2CanonicalDigest', async () => {
+    it('ticketL2CanonicalDigest', () => {
         const l2 = new TicketL2();
         l2.setNonce(new Uint8Array([1, 2, 3, 4, 5, 6, 7]));
 
-        let digest = await util.ticketL2CanonicalDigest(l2);
+        let digest = util.ticketL2CanonicalDigest(l2);
         expect(digest).toEqual(
             new Uint8Array([
                 0,
@@ -208,11 +208,11 @@ describe('util test', () => {
         );
     });
 
-    it('encryptedTicketL2Digest', async () => {
+    it('encryptedTicketL2Digest', () => {
         const l2 = new TicketL2Info();
         l2.setEncryptedTicketL2(new Uint8Array([1, 2, 3, 4, 5, 6, 7]));
 
-        let digest = await util.encryptedTicketL2Digest(l2);
+        let digest = util.encryptedTicketL2Digest(l2);
         expect(digest).toEqual(
             new Uint8Array([
                 0,
@@ -267,7 +267,7 @@ describe('util test', () => {
         );
     });
 
-    it('buildClientCacheRequest with TicketRequest', async () => {
+    it('buildClientCacheRequest with TicketRequest', () => {
         let puzzle = new ColocationPuzzleInfo();
         puzzle.setGoal(new Uint8Array([1, 2, 3]));
         puzzle.setRounds(1);
@@ -283,7 +283,7 @@ describe('util test', () => {
 
         let submsg = new TicketRequest();
 
-        let r = await util.buildClientCacheRequest(bundle, submsg);
+        let r = util.buildClientCacheRequest(bundle, submsg);
 
         let expected = new ClientCacheRequest();
         expected.setBundleRemainder(remainder);
@@ -400,7 +400,7 @@ describe('util test', () => {
         expect(r).toEqual(expected);
     });
 
-    it('buildClientCacheRequest with TicketL1', async () => {
+    it('buildClientCacheRequest with TicketL1', () => {
         let puzzle = new ColocationPuzzleInfo();
         puzzle.setGoal(new Uint8Array([1, 2, 3]));
         puzzle.setRounds(1);
@@ -416,7 +416,7 @@ describe('util test', () => {
 
         let submsg = new TicketL1();
 
-        let r = await util.buildClientCacheRequest(bundle, submsg);
+        let r = util.buildClientCacheRequest(bundle, submsg);
 
         let expected = new ClientCacheRequest();
         expected.setBundleRemainder(remainder);
@@ -532,7 +532,7 @@ describe('util test', () => {
 
         expect(r).toEqual(expected);
     });
-    it('buildClientCacheRequest with TicketL2Info', async () => {
+    it('buildClientCacheRequest with TicketL2Info', () => {
         let puzzle = new ColocationPuzzleInfo();
         puzzle.setGoal(new Uint8Array([1, 2, 3]));
         puzzle.setRounds(1);
@@ -548,7 +548,7 @@ describe('util test', () => {
 
         let submsg = new TicketL2Info();
 
-        let r = await util.buildClientCacheRequest(bundle, submsg);
+        let r = util.buildClientCacheRequest(bundle, submsg);
 
         let expected = new ClientCacheRequest();
         expected.setBundleRemainder(remainder);
