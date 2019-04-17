@@ -1,7 +1,7 @@
-import { AesBlockSize, encryptBlock } from './util';
-import { Crypto } from '@peculiar/webcrypto';
+import { AesBlockSize, encryptBlock } from './digest';
 
-const crypto = new Crypto();
+const sha384 = require('sha.js').sha384;
+
 export const Sha2Size384 = 48; // sha512.Size384
 export const IVSize = AesBlockSize;
 export const KeySize = 16;
@@ -38,12 +38,12 @@ export class Puzzle {
     }
 
     // this is called generate in go-cachecash
-    static async generate(
+    static generate(
         params: Parameters,
         blocks: Uint8Array[],
         innerKeys: Uint8Array[],
         innerIVs: Uint8Array[]
-    ): Promise<Puzzle> {
+    ): Puzzle {
         params.validate();
 
         if (blocks.length === 0) {
@@ -69,11 +69,11 @@ export class Puzzle {
 
         const startOffset = Math.floor(Math.random() * blockSize[0]);
 
-        const result = await runPuzzle(
+        const result = runPuzzle(
             params.rounds,
             blocks.length,
             startOffset,
-            async (i: number, offset: number): Promise<Uint8Array> => {
+            (i: number, offset: number): Uint8Array => {
                 const blockLen = blocks[i].length;
                 offset = offset % (blockLen / AesBlockSize);
                 const plaintext = getCipherBlock(blocks[i], offset);
@@ -85,7 +85,7 @@ export class Puzzle {
         return new Puzzle(result.goal, result.secret, startOffset, params);
     }
 
-    async solve(params: Parameters, blocks: Uint8Array[]): Promise<Solution> {
+    solve(params: Parameters, blocks: Uint8Array[]): Solution {
         params.validate();
 
         if (blocks.length === 0) {
@@ -103,30 +103,10 @@ export class Puzzle {
             );
         }
 
-        // Try all possible starting offsets and look for one that produces the result/goal value we're looking for.
-        for (let offset = 0; offset < blocks[0].length / AesBlockSize; offset++) {
-            let result = await runPuzzle(
-                params.rounds,
-                blocks.length,
-                offset,
-                async (blockIdx: number, offset: number): Promise<Uint8Array> => {
-                    offset = offset % (blocks[blockIdx].length / AesBlockSize);
-                    return blocks[blockIdx].slice(
-                        offset * AesBlockSize,
-                        (offset + 1) * AesBlockSize
-                    );
-                }
-            );
-
-            if (equalBuffers(this.goal, result.goal)) {
-                return new Solution(result.secret, offset);
-            }
-        }
-
-        throw new Error('no solution found');
+        return runPuzzleFastSolve(blocks, params, this.goal);
     }
 
-    async verify(blocks: Uint8Array[], solution: Solution): Promise<Result> {
+    verify(blocks: Uint8Array[], solution: Solution): Result {
         this.params.validate();
 
         if (blocks.length === 0) {
@@ -144,11 +124,11 @@ export class Puzzle {
             );
         }
 
-        let result = await runPuzzle(
+        let result = runPuzzle(
             this.params.rounds,
             blocks.length,
             solution.offset,
-            async (blockIdx: number, offset: number): Promise<Uint8Array> => {
+            (blockIdx: number, offset: number): Uint8Array => {
                 offset = offset % (blocks[blockIdx].length / AesBlockSize);
                 return blocks[blockIdx].slice(offset * AesBlockSize, (offset + 1) * AesBlockSize);
             }
@@ -213,31 +193,70 @@ export function equalBuffers(a: Uint8Array, b: Uint8Array): boolean {
     return true;
 }
 
-export async function runPuzzle(
+export function runPuzzle(
     rounds: number,
     blockQty: number,
     offset: number,
-    getBlockFn: (i: number, offset: number) => Promise<Uint8Array>
-): Promise<Result> {
-    let curLoc: Uint8Array = new Uint8Array(new ArrayBuffer(Sha2Size384));
+    getBlockFn: (i: number, offset: number) => Uint8Array
+): Result {
+    let curLoc: Uint8Array = new Uint8Array(Sha2Size384);
     let prevLoc: Uint8Array = curLoc;
 
     for (let i = 0; i < rounds * blockQty - 1; i++) {
         const blockIdx = i % blockQty;
-        const subblock = await getBlockFn(blockIdx, offset);
+        const subblock = getBlockFn(blockIdx, offset);
         prevLoc = curLoc;
 
-        let data = new Uint8Array(curLoc.length + subblock.length);
-        data.set(curLoc);
-        data.set(subblock, curLoc.length);
-
-        let digest = await crypto.subtle.digest('SHA-384', data);
+        const h = new sha384();
+        h.update(curLoc);
+        h.update(subblock);
+        const digest = h.digest();
 
         curLoc = new Uint8Array(digest);
-        offset = new DataView(digest).getUint32(curLoc.length - 4, true); // For little endian
+        offset = new DataView(curLoc.buffer).getUint32(curLoc.length - 4, true); // For little endian
     }
 
     return new Result(curLoc, prevLoc);
+}
+
+export function runPuzzleFastSolve(
+    blocks: Uint8Array[],
+    params: Parameters,
+    goal: Uint8Array
+): Solution {
+    // Try all possible starting offsets and look for one that produces the result/goal value we're looking for.
+    for (let offset = 0; offset < blocks[0].length / AesBlockSize; offset++) {
+        let rounds = params.rounds;
+        let blockQty = blocks.length;
+        let offset3 = offset;
+
+        let curLoc: Uint8Array = new Uint8Array(Sha2Size384);
+        let prevLoc: Uint8Array = curLoc;
+
+        for (let i = 0; i < rounds * blockQty - 1; i++) {
+            const blockIdx = i % blockQty;
+            const offset2 = offset3 % (blocks[blockIdx].length / AesBlockSize);
+            const begin = offset2 * AesBlockSize;
+            const end = (offset2 + 1) * AesBlockSize;
+            const subblock = blocks[blockIdx].slice(begin, end);
+
+            prevLoc = curLoc;
+
+            const h = new sha384();
+            h.update(curLoc);
+            h.update(subblock);
+            let digest = h.digest();
+
+            curLoc = new Uint8Array(digest);
+            offset3 = new DataView(curLoc.buffer).getUint32(curLoc.length - 4, true); // For little endian
+        }
+
+        if (equalBuffers(goal, curLoc)) {
+            return new Solution(prevLoc, offset);
+        }
+    }
+
+    throw new Error('no solution found');
 }
 
 function getCipherBlock(dataBlock: Uint8Array, cipherBlockIdx: number): Uint8Array {

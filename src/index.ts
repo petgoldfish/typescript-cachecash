@@ -4,6 +4,6 @@
 
 export { Client } from './client';
 export * from './puzzle';
-export * from './util';
+export * from './digest';
 export * from './common';
 export * from './proto/cachecash_pb';

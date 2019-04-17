@@ -8,30 +8,19 @@ import {
     runPuzzle,
     equalBuffers
 } from '../src/puzzle';
-import { AesBlockSize } from '../src/util';
-import { Crypto } from '@peculiar/webcrypto';
+import { AesBlockSize } from '../src/digest';
+const aesjs = require('aes-js');
+const randomBytes = require('randombytes');
 
-const crypto = new Crypto();
 const BlockQty = 8;
 const BlockSize = AesBlockSize * 1024;
 
 function randBytes(n: number): Uint8Array {
-    let bytes = new Uint8Array(n);
-    crypto.getRandomValues(bytes);
-    return bytes;
+    const bytes = randomBytes(n);
+    return new Uint8Array([...bytes]);
 }
 
-async function captureAsyncThrow(f: Function, ...args: any[]): Promise<Error> {
-    let error;
-    try {
-        await f(...args);
-    } catch (e) {
-        error = e;
-    }
-    return error;
-}
-
-async function setupSuite() {
+function setupSuite() {
     let plaintextBlocks: Uint8Array[] = [];
     let ciphertextBlocks: Uint8Array[] = [];
     let innerKeys: Uint8Array[] = [];
@@ -50,26 +39,14 @@ async function setupSuite() {
         plaintextBlocks.push(b);
 
         // encrypt block
-        let cryptoKey = await crypto.subtle.importKey('raw', k, 'AES-CTR', true, [
-            'encrypt',
-            'decrypt'
-        ]);
+        const aesCtr = new aesjs.ModeOfOperation.ctr(k, new aesjs.Counter(iv));
+        const cb = aesCtr.encrypt(b);
 
-        let cb = await crypto.subtle.encrypt(
-            {
-                name: 'AES-CTR',
-                counter: iv,
-                length: 128
-            },
-            cryptoKey,
-            b
-        );
-
-        ciphertextBlocks.push(new Uint8Array(cb));
+        ciphertextBlocks.push(cb);
     }
 
-    async function generateAndSolve(rangeBegin: number, rangeEnd: number) {
-        let puzzle = await Puzzle.generate(
+    function generateAndSolve(rangeBegin: number, rangeEnd: number) {
+        let puzzle = Puzzle.generate(
             params,
             plaintextBlocks.slice(rangeBegin, rangeEnd),
             innerKeys.slice(rangeBegin, rangeEnd),
@@ -79,7 +56,7 @@ async function setupSuite() {
         expect(puzzle.secret.length).toBe(Sha2Size384);
         expect(puzzle.goal.length).toBe(Sha2Size384);
 
-        let solution = await puzzle.solve(params, ciphertextBlocks.slice(rangeBegin, rangeEnd));
+        let solution = puzzle.solve(params, ciphertextBlocks.slice(rangeBegin, rangeEnd));
 
         // It's only actually important that the secret be the same on both sides, but it would be very odd if multiple
         // offsets led to correct solutions to the puzzle.
@@ -98,26 +75,26 @@ async function setupSuite() {
     };
 }
 
-describe('Colocation puzzle solver', async () => {
-    it('generate and solve', async () => {
-        let suite = await setupSuite();
+describe('Colocation puzzle solver', () => {
+    it('generate and solve', () => {
+        let suite = setupSuite();
         return suite.generateAndSolve(0, 4);
     });
 
-    it('generate and solve with offset', async () => {
-        let suite = await setupSuite();
+    it('generate and solve with offset', () => {
+        let suite = setupSuite();
         return suite.generateAndSolve(4, 8);
     });
 
-    it('generate and solve single block', async () => {
-        let suite = await setupSuite();
+    it('generate and solve single block', () => {
+        let suite = setupSuite();
         return suite.generateAndSolve(0, 1);
     });
 
-    it('challenge and verify', async () => {
-        let suite = await setupSuite();
+    it('challenge and verify', () => {
+        let suite = setupSuite();
 
-        let puzzle = await Puzzle.generate(
+        let puzzle = Puzzle.generate(
             suite.params,
             suite.plaintextBlocks,
             suite.innerKeys,
@@ -126,12 +103,12 @@ describe('Colocation puzzle solver', async () => {
 
         let solution = new Solution(puzzle.goal, puzzle.offset);
         // this throws an exception if it fails
-        await puzzle.verify(suite.ciphertextBlocks, solution);
+        puzzle.verify(suite.ciphertextBlocks, solution);
     });
 
     // keep this function in sync with go-cachecash
-    it('runs puzzle correctly', async () => {
-        let suite = await setupSuite();
+    it('runs puzzle correctly', () => {
+        let suite = setupSuite();
 
         let blocks = [
             new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]),
@@ -143,11 +120,11 @@ describe('Colocation puzzle solver', async () => {
         let rounds = 2;
         let offset = 2;
 
-        let result = await runPuzzle(
+        let result = runPuzzle(
             rounds,
             blocks.length,
             offset,
-            async (blockIdx: number, offset: number): Promise<Uint8Array> => {
+            (blockIdx: number, offset: number): Uint8Array => {
                 offset = offset % (blocks[blockIdx].length / AesBlockSize);
                 return blocks[blockIdx].slice(offset * AesBlockSize, (offset + 1) * AesBlockSize);
             }
@@ -175,8 +152,8 @@ describe('Colocation puzzle solver', async () => {
     });
 
     // keep this function in sync with go-cachecash
-    it('solution verify', async () => {
-        let suite = await setupSuite();
+    it('solution verify', () => {
+        let suite = setupSuite();
 
         let blocks = [
             new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]),
@@ -205,13 +182,13 @@ describe('Colocation puzzle solver', async () => {
 
         let puzzle = new Puzzle(goal, secret, offset, suite.params);
         let solution = new Solution(goal, offset);
-        let result = await puzzle.verify(blocks, solution);
+        let result = puzzle.verify(blocks, solution);
         expect(result.secret).toEqual(secret);
     });
 
-    it('test key and iv from secret', async () => {
-        let suite = await setupSuite();
-        let puzzle = await Puzzle.generate(
+    it('test key and iv from secret', () => {
+        let suite = setupSuite();
+        let puzzle = Puzzle.generate(
             suite.params,
             suite.plaintextBlocks,
             suite.innerKeys,
@@ -230,29 +207,43 @@ describe('Colocation puzzle solver', async () => {
         expect(() => params.validate()).toThrow(new Error('puzzle must have at least one round'));
     });
 
-    it('throws on invalid generate', async () => {
+    it('throws on invalid generate', () => {
         let params = new Parameters(1, 0, 0);
 
-        let error;
-        error = await captureAsyncThrow(Puzzle.generate, params, [], [], []);
-        expect(error).toEqual(new Error('must have at least one data block'));
+        expect(() => {
+            Puzzle.generate(params, [], [], []);
+        }).toThrow(new Error('must have at least one data block'));
 
-        error = await captureAsyncThrow(Puzzle.generate, params, [1], [], []);
-        expect(error).toEqual(new Error('must have same number of blocks, keys, and IVs'));
+        expect(() => {
+            Puzzle.generate(params, [new Uint8Array([1])], [], []);
+        }).toThrow(new Error('must have same number of blocks, keys, and IVs'));
 
-        error = await captureAsyncThrow(Puzzle.generate, params, [1], [1], [1]);
-        expect(error).toEqual(
+        expect(() => {
+            Puzzle.generate(
+                params,
+                [new Uint8Array([1])],
+                [new Uint8Array([1])],
+                [new Uint8Array([1])]
+            );
+        }).toThrow(
             new Error(
                 'must use at least two puzzle iterations; increase number of rounds or caches'
             )
         );
 
-        error = await captureAsyncThrow(Puzzle.generate, params, [1, 2], [1, 2], [1, 2]);
-        expect(error).toEqual(new Error('input block size is not a multiple of cipher block size'));
+        params.rounds = 2;
+        expect(() => {
+            Puzzle.generate(
+                params,
+                [new Uint8Array([1, 2])],
+                [new Uint8Array([1, 2])],
+                [new Uint8Array([1, 2])]
+            );
+        }).toThrow(new Error('input block size is not a multiple of cipher block size'));
     });
 
-    it('throws on invalid solution', async () => {
-        let suite = await setupSuite();
+    it('throws on invalid solution', () => {
+        let suite = setupSuite();
 
         let blocks = [
             new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]),
@@ -282,12 +273,13 @@ describe('Colocation puzzle solver', async () => {
         let puzzle = new Puzzle(goal, secret, offset, suite.params);
         let solution = new Solution(goal, offset);
 
-        let error = await captureAsyncThrow(() => puzzle.verify(blocks, solution));
-        expect(error).toEqual(new Error('solution is incorrect'));
+        expect(() => {
+            puzzle.verify(blocks, solution);
+        }).toThrow(new Error('solution is incorrect'));
     });
 
-    it('throws on invalid solution paramers', async () => {
-        let suite = await setupSuite();
+    it('throws on invalid solution paramers', () => {
+        let suite = setupSuite();
 
         let blocks = [new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])];
 
@@ -316,25 +308,23 @@ describe('Colocation puzzle solver', async () => {
         puzzle = new Puzzle(goal, secret, offset, params);
         let solution = new Solution(goal, offset);
 
-        let error;
-        error = await captureAsyncThrow(() => puzzle.verify([], solution));
-        expect(error).toEqual(new Error('must have at least one data block'));
+        expect(() => puzzle.verify([], solution)).toThrow(
+            new Error('must have at least one data block')
+        );
 
-        error = await captureAsyncThrow(() =>
+        expect(() =>
             puzzle.verify(
                 [new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])],
                 solution
             )
-        );
-        expect(error).toEqual(
+        ).toThrow(
             new Error(
                 'must use at least two puzzle iterations; increase number of rounds or caches'
             )
         );
 
         puzzle = new Puzzle(goal, new Uint8Array([1, 2, 3]), offset, params);
-        error = await captureAsyncThrow(() => puzzle.verify(blocks, solution));
-        expect(error).toEqual(
+        expect(() => puzzle.verify(blocks, solution)).toThrow(
             new Error('goal value must be a SHA-384 digest; its length is wrong')
         );
     });
@@ -344,37 +334,34 @@ describe('Colocation puzzle solver', async () => {
         expect(equal).toBe(false);
     });
 
-    it('throws if no solution found', async () => {
-        let suite = await setupSuite();
+    it('throws if no solution found', () => {
+        let suite = setupSuite();
 
-        let puzzle = await Puzzle.generate(
+        let puzzle = Puzzle.generate(
             suite.params,
             suite.plaintextBlocks,
             suite.innerKeys,
             suite.innerIVs
         );
 
-        let error;
-        error = await captureAsyncThrow(() => puzzle.solve(suite.params, []));
-        expect(error).toEqual(new Error('must have at least one data block'));
+        expect(() => puzzle.solve(suite.params, [])).toThrow(
+            new Error('must have at least one data block')
+        );
 
         puzzle.goal = new Uint8Array(Array(48).fill(0xff));
-        error = await captureAsyncThrow(() => puzzle.solve(suite.params, suite.ciphertextBlocks));
-        expect(error).toEqual(new Error('no solution found'));
+        expect(() => puzzle.solve(suite.params, suite.ciphertextBlocks)).toThrow(
+            new Error('no solution found')
+        );
 
         puzzle.params.rounds = 1;
-        error = await captureAsyncThrow(() =>
-            puzzle.solve(suite.params, suite.ciphertextBlocks.slice(0, 1))
-        );
-        expect(error).toEqual(
+        expect(() => puzzle.solve(suite.params, suite.ciphertextBlocks.slice(0, 1))).toThrow(
             new Error(
                 'must use at least two puzzle iterations; increase number of rounds or caches'
             )
         );
 
         puzzle.goal = new Uint8Array([1, 2, 3]);
-        error = await captureAsyncThrow(() => puzzle.solve(suite.params, suite.ciphertextBlocks));
-        expect(error).toEqual(
+        expect(() => puzzle.solve(suite.params, suite.ciphertextBlocks)).toThrow(
             new Error('goal value must be a SHA-384 digest; its length is wrong')
         );
     });

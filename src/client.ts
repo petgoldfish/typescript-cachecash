@@ -1,6 +1,5 @@
 import { grpc } from '@improbable-eng/grpc-web';
 import { NodeHttpTransport } from '@improbable-eng/grpc-web-node-http-transport';
-import isNode from 'detect-node';
 
 import {
     ObjectMetadata,
@@ -19,7 +18,7 @@ import {
     TicketBundle,
     PublicKey
 } from './proto/cachecash_pb';
-import * as util from './util';
+import * as util from './digest';
 import { Puzzle, Parameters } from './puzzle';
 import { ClientPublisher, ClientCache } from './proto/cachecash_pb_service';
 import { decryptTicketL2 } from './common';
@@ -166,7 +165,7 @@ export class Client {
         const bundle = resp.getBundle() as TicketBundle;
         console.log('got ticket from publisher');
 
-        const cacheConnections = bundle.getCacheInfoList().map((ci: CacheInfo, i: number) => {
+        const cacheConnections = bundle.getCacheInfoList().map((ci: CacheInfo) => {
             let url = networkaddr2http(ci.getAddr() as NetworkAddress);
             let cc = new CacheConnection(url);
             return cc;
@@ -219,11 +218,14 @@ export class Client {
             parameters
         );
 
+        console.log('Solving puzzle');
+        console.time('Puzzle solved');
         // TODO: rangeBegin, rangeEnd missing?
-        let solution = await puzzle.solve(parameters, singleEncryptedBlocks);
+        let solution = puzzle.solve(parameters, singleEncryptedBlocks);
+        console.timeEnd('Puzzle solved');
 
         // Decrypt L2 ticket
-        let ticketL2 = await decryptTicketL2(
+        let ticketL2 = decryptTicketL2(
             solution.secret,
             new Uint8Array(bundle.getEncryptedTicketL2_asU8())
         );
@@ -237,7 +239,7 @@ export class Client {
             tl2info.setEncryptedTicketL2(bundle.getEncryptedTicketL2());
             tl2info.setPuzzleSecret(solution.secret);
 
-            let req = await util.buildClientCacheRequest(bundle, tl2info);
+            let req = util.buildClientCacheRequest(bundle, tl2info);
             await this.grpcExchangeTicketL2(cc.getRemote(), req);
         });
         await Promise.all(promises);
@@ -249,7 +251,7 @@ export class Client {
         for (let i = 0; i < singleEncryptedBlocks.length; i++) {
             let ciphertext = singleEncryptedBlocks[i];
 
-            let plaintext = await util.encryptDataBlock(
+            let plaintext = util.encryptDataBlock(
                 bundle.getTicketRequestList()[i].getBlockIdx(),
                 (bundle.getRemainder() as TicketBundleRemainder).getRequestSequenceNo(),
                 ticketL2.getInnerSessionKeyList()[i].getKey_asU8(),
@@ -267,7 +269,7 @@ export class Client {
     // TODO: cc is unused?
     async requestBlock(cc: CacheConnection, b: BlockRequest): Promise<BlockRequest> {
         // Send request ticket to cache; await data.
-        let reqData = await util.buildClientCacheRequest(
+        let reqData = util.buildClientCacheRequest(
             b.bundle,
             b.bundle.getTicketRequestList()[b.idx]
         );
@@ -275,12 +277,12 @@ export class Client {
         console.log('got data response from cache (in bytes)', msgData.getData_asU8().length);
 
         // Send L1 ticket to cache; await outer decryption key.
-        let reqL1 = await util.buildClientCacheRequest(b.bundle, b.bundle.getTicketL1List()[b.idx]);
+        let reqL1 = util.buildClientCacheRequest(b.bundle, b.bundle.getTicketL1List()[b.idx]);
         let msgL1 = await this.grpcExchangeTicketL1(cc.getRemote(), reqL1);
         console.log('got L1 response from cache');
 
         // Decrypt data
-        let encData = await util.encryptDataBlock(
+        let encData = util.encryptDataBlock(
             b.bundle.getTicketRequestList()[b.idx].getBlockIdx(),
             (b.bundle.getRemainder() as TicketBundleRemainder).getRequestSequenceNo(),
             (msgL1.getOuterKey() as BlockKey).getKey_asU8(),

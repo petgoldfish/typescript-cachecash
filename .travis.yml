@@ -4,6 +4,26 @@ cache:
   directories:
     - ~/.npm
 
+# Test only on the most recent stable release.
+matrix:
+  include:
+  - os: linux
+    node_js: '10'
+    env:
+    - BUILD_MODE=test
+  - os: linux
+    node_js: '11'
+    env:
+    - BUILD_MODE=test
+  - os: linux
+    node_js: '8'
+    env:
+    - BUILD_MODE=test
+  - os: linux
+    node_js: '11'
+    env:
+    - BUILD_MODE=integration
+
 notifications:
   # Don't email the results of the test runs.
   email: false
@@ -11,18 +31,22 @@ notifications:
   slack:
     secure: fXgA1ALyCnRt+yCruZf3PrjDn4n3PMH0bitQl4wb4VWsccISZ3S6KJiOYkIl0K1YnxzGMJPeEymT6eV7ntAXIy+tjZ+glNu3GZLtvy6PFQJDg7RDh4opz0H3QEPy7mWOCa+0/BmB4rh/D8HF/1gTQ+zGQLLjxP6oFrSVaOb137hXJKh0XfGw5+361hRgmlRD5jdjZfXz7SgsgnY7H1VSgNjNPywiqYPzsgbV+FZFzicCloWBjfui4vduOJ9GsvPc+v0eaQZTNAGl2oKb77fv8dZlbYzg/ImhDilEw9EtBeIvjR1L+7VTXFoncRN4PGgVfjdp/wbjZ90wsIr/70jVVZFiUcY7sarhuU1Y+LQ4OZv/jcXh5rLpNDyeF//XwHSY/wZ/HGV06HN26NO8RdW3BSJs3CmA9z8XE14yFjTluecJ+PrG98cBbHkzCqDi6wvAi53hUoJYvZoj0shyefDlJbpfphbluXAE0w0gw0pcqYXuUC1ePxjNrtIeFQgdBHJ2VFs0LmaP0ATNi7MdkHRvRze80MTRoeHwKOb0vGQ23woj9nGsaZMz+rFPG8yfXMG1+oQnXzr6f33K9JtIOVqQ8AV5jrxS/+OGwa9ROz6+Ex5FXZCiWHPrWC1NGZlS1MeDsJHKltN773T4xIu8H2gkcvcsrQVTA6yjQsmGJNV3XUc=
 
-node_js:
-  - '10'
-  - '11'
-  - '8'
+before_install:
+- openssl aes-256-cbc -K $encrypted_8f736568fbd6_key -iv $encrypted_8f736568fbd6_iv -in id_deploykey_go-cachecash.enc -out id_deploykey_go-cachecash -d
+
+before_script:
+- sudo service postgresql stop
+
+- sudo rm /usr/local/bin/docker-compose
+- curl -L https://github.com/docker/compose/releases/download/1.24.0/docker-compose-`uname -s`-`uname -m` > docker-compose
+- chmod +x docker-compose
+- sudo mv docker-compose /usr/local/bin
 
 script:
-  - npm run test:prod && npm run build
+- ci/run.sh
 
 after_success:
-  - npm run travis-deploy-once "npm run report-coverage"
-  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then npm run travis-deploy-once "npm run deploy-docs"; fi
-  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then npm run travis-deploy-once "npm run semantic-release"; fi
+- ci/after.sh
 
 branches:
   except:

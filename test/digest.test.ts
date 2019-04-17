@@ -1,5 +1,5 @@
 // TODO: move this to digest module
-import * as util from '../src/util';
+import * as util from '../src/digest';
 import {
     TicketBundleSubdigests,
     TicketRequest,
@@ -9,13 +9,11 @@ import {
     TicketBundleRemainder,
     TicketBundle,
     TicketL1
-} from '../src/proto/cachecash_pb';
-import { Crypto } from '@peculiar/webcrypto';
-
-const crypto = new Crypto();
+} from '../src';
+const sha384 = require('sha.js').sha384;
 
 describe('digest calculation', () => {
-    it('TicketBundleSubdigestsCanonicalDigest', async () => {
+    it('TicketBundleSubdigestsCanonicalDigest', () => {
         const m = new TicketBundleSubdigests();
         m.setTicketRequestDigestList([
             new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]),
@@ -32,7 +30,7 @@ describe('digest calculation', () => {
         m.setEncryptedTicketL2Digest(new Uint8Array([1, 2, 3, 4, 5]));
         m.setRemainderDigest(new Uint8Array([6, 7, 8, 9, 0]));
 
-        const digest = await util.ticketBundleSubdigestsCanonicalDigest(m);
+        const digest = util.ticketBundleSubdigestsCanonicalDigest(m);
         expect(digest).toEqual(
             new Uint8Array([
                 0x17,
@@ -87,7 +85,7 @@ describe('digest calculation', () => {
         );
     });
 
-    it('TicketBundleSubdigestsCanonicalDigest2', async () => {
+    it('TicketBundleSubdigestsCanonicalDigest2', () => {
         const m = new TicketBundleSubdigests();
         m.setTicketRequestDigestList([
             new Uint8Array([
@@ -598,7 +596,7 @@ describe('digest calculation', () => {
             ])
         );
 
-        const digest = await util.ticketBundleSubdigestsCanonicalDigest(m);
+        const digest = util.ticketBundleSubdigestsCanonicalDigest(m);
         expect(digest).toEqual(
             new Uint8Array([
                 205,
@@ -653,7 +651,7 @@ describe('digest calculation', () => {
         );
     });
 
-    it('TicketBundleSubdigestsCanonicalTicketRequestDigest', async () => {
+    it('TicketBundleSubdigestsCanonicalTicketRequestDigest', () => {
         const m = new TicketBundleSubdigests();
         m.setTicketRequestDigestList([
             new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]),
@@ -662,7 +660,7 @@ describe('digest calculation', () => {
             new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
         ]);
 
-        const digest = await util.canonicalTicketRequestDigest(m);
+        const digest = util.canonicalTicketRequestDigest(m);
         expect(digest).toEqual(
             new Uint8Array([
                 0x71,
@@ -717,7 +715,7 @@ describe('digest calculation', () => {
         );
     });
 
-    it('TicketBundleSubdigestsCanonicalTicketL1Digest', async () => {
+    it('TicketBundleSubdigestsCanonicalTicketL1Digest', () => {
         const m = new TicketBundleSubdigests();
         m.setTicketL1DigestList([
             new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]),
@@ -726,7 +724,7 @@ describe('digest calculation', () => {
             new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
         ]);
 
-        const digest = await util.canonicalTicketL1Digest(m);
+        const digest = util.canonicalTicketL1Digest(m);
         expect(digest).toEqual(
             new Uint8Array([
                 0x71,
@@ -781,7 +779,7 @@ describe('digest calculation', () => {
         );
     });
 
-    it('canonicalEncryptedTicketL2Digest', async () => {
+    it('canonicalEncryptedTicketL2Digest', () => {
         const m = new TicketBundle();
         m.setEncryptedTicketL2(
             new Uint8Array([
@@ -868,7 +866,7 @@ describe('digest calculation', () => {
             ])
         );
 
-        const digest = await util.canonicalEncryptedTicketL2Digest(m);
+        const digest = util.canonicalEncryptedTicketL2Digest(m);
         expect(digest).toEqual(
             new Uint8Array([
                 89,
@@ -923,7 +921,7 @@ describe('digest calculation', () => {
         );
     });
 
-    it('TicketBundleRemainderCanonicalDigest', async () => {
+    it('TicketBundleRemainderCanonicalDigest', () => {
         const puzzle = new ColocationPuzzleInfo();
         puzzle.setGoal(new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]));
         puzzle.setRounds(123);
@@ -933,7 +931,7 @@ describe('digest calculation', () => {
         const m = new TicketBundleRemainder();
         m.setPuzzleInfo(puzzle);
 
-        const digest = await util.ticketBundleRemainderCanonicalDigest(m);
+        const digest = util.ticketBundleRemainderCanonicalDigest(m);
         expect(digest).toEqual(
             new Uint8Array([
                 0x18,
@@ -988,7 +986,7 @@ describe('digest calculation', () => {
         );
     });
 
-    it('ColocationPuzzleInfoCanonicalDigest', async () => {
+    it('ColocationPuzzleInfoCanonicalDigest', () => {
         const puzzle = new ColocationPuzzleInfo();
         puzzle.setGoal(new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]));
         puzzle.setRounds(123);
@@ -1037,7 +1035,10 @@ describe('digest calculation', () => {
             ])
         );
 
-        let digest = await crypto.subtle.digest('SHA-384', digestInput);
+        const h = new sha384();
+        h.update(digestInput);
+        const digest = h.digest();
+
         expect(new Uint8Array(digest)).toEqual(
             new Uint8Array([
                 0x18,
@@ -1092,7 +1093,7 @@ describe('digest calculation', () => {
         );
     });
 
-    it('TicketRequestCanonicalDigest', async () => {
+    it('TicketRequestCanonicalDigest', () => {
         const innerKey = new BlockKey();
         innerKey.setKey(new Uint8Array([1, 2, 4, 5, 6]));
 
@@ -1104,7 +1105,7 @@ describe('digest calculation', () => {
         m.setInnerKey(innerKey);
         m.setCachePublicKey(cachePublicKey);
 
-        const digest = await util.ticketRequestCanonicalDigest(m);
+        const digest = util.ticketRequestCanonicalDigest(m);
         expect(digest).toEqual(
             new Uint8Array([
                 0xfd,
@@ -1159,7 +1160,7 @@ describe('digest calculation', () => {
         );
     });
 
-    it('TicketBundle getSubdigests', async () => {
+    it('TicketBundle getSubdigests', () => {
         const encryptedTicketL2 = new Uint8Array([1, 2, 3, 4, 5]);
 
         const puzzle = new ColocationPuzzleInfo();
@@ -1211,7 +1212,7 @@ describe('digest calculation', () => {
         bundle.setTicketL1List(ticketL1List);
         bundle.setTicketRequestList(ticketRequestList);
 
-        const tbs = await util.getSubdigests(bundle);
+        const tbs = util.getSubdigests(bundle);
 
         expect(tbs.getRemainderDigest()).toEqual(
             new Uint8Array([
@@ -1525,7 +1526,7 @@ describe('digest calculation', () => {
             ])
         ]);
 
-        const digest = await util.ticketBundleSubdigestsCanonicalDigest(tbs);
+        const digest = util.ticketBundleSubdigestsCanonicalDigest(tbs);
         expect(digest).toEqual(
             new Uint8Array([
                 0x4d,

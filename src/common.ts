@@ -1,52 +1,23 @@
-import { Crypto } from '@peculiar/webcrypto';
 import { TicketL2 } from './proto/cachecash_pb';
 import { Puzzle, sliceIVFromSecret, sliceKeyFromSecret } from './puzzle';
+const aesjs = require('aes-js');
 
-const crypto = new Crypto();
+export function encryptTicketL2(p: Puzzle, t: TicketL2): Uint8Array {
+    const plaintext = t.serializeBinary();
 
-export async function encryptTicketL2(p: Puzzle, t: TicketL2): Promise<Uint8Array> {
-    let plaintext = t.serializeBinary();
+    const aesCtr = new aesjs.ModeOfOperation.ctr(p.key(), new aesjs.Counter(p.iv()));
+    const ciphertext = aesCtr.encrypt(plaintext);
 
-    let cryptoKey = await crypto.subtle.importKey('raw', p.key(), 'AES-CTR', true, [
-        'encrypt',
-        'decrypt'
-    ]);
-
-    let ciphertext = await crypto.subtle.encrypt(
-        {
-            name: 'AES-CTR',
-            counter: p.iv,
-            length: 128
-        },
-        cryptoKey,
-        plaintext
-    );
-
-    return new Uint8Array(ciphertext);
+    return ciphertext;
 }
 
-export async function decryptTicketL2(
-    secret: Uint8Array,
-    ciphertext: Uint8Array
-): Promise<TicketL2> {
-    let iv = sliceIVFromSecret(secret);
-    let key = sliceKeyFromSecret(secret);
+export function decryptTicketL2(secret: Uint8Array, ciphertext: Uint8Array): TicketL2 {
+    const iv = sliceIVFromSecret(secret);
+    const key = sliceKeyFromSecret(secret);
 
-    let cryptoKey = await crypto.subtle.importKey('raw', key, 'AES-CTR', true, [
-        'encrypt',
-        'decrypt'
-    ]);
+    const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(iv));
+    const plaintext = aesCtr.decrypt(ciphertext);
 
-    let plaintext = await crypto.subtle.decrypt(
-        {
-            name: 'AES-CTR',
-            counter: iv,
-            length: 128
-        },
-        cryptoKey,
-        ciphertext
-    );
-
-    let msg = TicketL2.deserializeBinary(new Uint8Array(plaintext));
+    const msg = TicketL2.deserializeBinary(plaintext);
     return msg;
 }
