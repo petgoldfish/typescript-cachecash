@@ -91,13 +91,62 @@ class CacheConnection {
     }
 }
 
+export class Bundle {
+    path: string;
+    bundle: TicketBundle;
+    caches: CacheConnection[];
+    rangeBegin: number;
+
+    constructor(path: string, bundle: TicketBundle, caches: CacheConnection[], rangeBegin: number) {
+        this.path = path;
+        this.bundle = bundle;
+        this.caches = caches;
+        this.rangeBegin = rangeBegin;
+    }
+
+    // assume all blocks are full
+    private estimatedBundleLength(): number {
+        const m = this.bundle.getMetadata() as ObjectMetadata;
+        return this.caches.length * m.getBlockSize();
+    }
+
+    blockSize(): number {
+        const m = this.bundle.getMetadata() as ObjectMetadata;
+        return m.getBlockSize();
+    }
+
+    objectSize(): number {
+        const m = this.bundle.getMetadata() as ObjectMetadata;
+        return m.getObjectSize();
+    }
+
+    remainingChunks(): number {
+        const m = this.bundle.getMetadata() as ObjectMetadata;
+        const remainingBytes = m.getObjectSize() - this.rangeBegin - this.estimatedBundleLength();
+
+        if (remainingBytes > 0) {
+            return Math.ceil(remainingBytes / m.getBlockSize());
+        } else {
+            return 0;
+        }
+    }
+
+    chunkRangeBegin(): number {
+        const m = this.bundle.getMetadata() as ObjectMetadata;
+        return Math.ceil(this.rangeBegin / m.getBlockSize());
+    }
+
+    // XXX: only use this if you know there are blocks remaining
+    nextRangeBegin(): number {
+        return this.rangeBegin + this.estimatedBundleLength();
+    }
+}
+
 export class Client {
     private publisher: string;
 
     private publicKey: PublicKey;
     private privateKey: Uint8Array;
-
-    // private caches: Map<string, CacheConnection>;
 
     constructor(publisher: string, publicKey: PublicKey, privateKey: Uint8Array) {
         this.publisher = publisher;
@@ -105,55 +154,25 @@ export class Client {
         this.publicKey = publicKey;
         this.privateKey = privateKey;
 
-        // this.caches = new Map();
-
         // detect-node import doesn't work correctly for some reason
         if (Object.prototype.toString.call(global.process) === '[object process]') {
             console.log('node detected');
+            // TODO: remove this when building for browsers
             grpc.setDefaultTransport(NodeHttpTransport());
         } else {
             console.log('browser detected');
         }
     }
 
-    async getObject(path: string): Promise<DataObject> {
-        let blockSize = 0;
-        let rangeBegin = 0; // this is in chunks
-        let remainingChunks = 1; // we expect at least one chunk
-
-        let data;
-        let offset = 0;
-
-        while (remainingChunks > 0) {
-            // XXX: `rangeBegin` here must be in bytes.
-            let bg = await this.requestBlockGroup(path, rangeBegin * blockSize);
-
-            if (!data) {
-                data = new Uint8Array(bg.metadata.getObjectSize());
-            }
-
-            for (let i = 0; i < bg.data.length; i++) {
-                if (bg.blockIdx[i] !== rangeBegin + i) {
-                    throw new Error(
-                        `block at position ${i} has index ${
-                            bg.blockIdx[i]
-                        }, but expected ${rangeBegin + i} `
-                    );
-                }
-
-                data.set(bg.data[i], offset);
-                offset += bg.data[i].length;
-            }
-
-            rangeBegin += bg.data.length;
-            blockSize = bg.metadata.getBlockSize();
-            remainingChunks = calculateBlockCount(bg.metadata) - rangeBegin;
-        }
-
-        return new DataObject(data as Uint8Array);
+    async getFirstBundle(path: string): Promise<Bundle> {
+        return this.getBundleInternal(path, 0);
     }
 
-    async requestBlockGroup(path: string, rangeBegin: number): Promise<BlockGroup> {
+    async getFollowupBundle(previous: Bundle): Promise<Bundle> {
+        return this.getBundleInternal(previous.path, previous.nextRangeBegin());
+    }
+
+    private async getBundleInternal(path: string, rangeBegin: number): Promise<Bundle> {
         const req = new ContentRequest();
         req.setClientPublicKey(this.publicKey);
         req.setPath(path);
@@ -165,38 +184,19 @@ export class Client {
         const bundle = resp.getBundle() as TicketBundle;
         console.log('got ticket from publisher');
 
-        const cacheConnections = bundle.getCacheInfoList().map((ci: CacheInfo) => {
+        const caches = bundle.getCacheInfoList().map((ci: CacheInfo) => {
             let url = networkaddr2http(ci.getAddr() as NetworkAddress);
-            let cc = new CacheConnection(url);
-            return cc;
+            return new CacheConnection(url);
         });
 
+        return new Bundle(path, bundle, caches, rangeBegin);
+    }
+
+    async fetchBundle(b: Bundle): Promise<BlockGroup> {
+        let bundle = b.bundle;
+
         console.log('requesting blocks from caches');
-
-        let requests = cacheConnections.map((cc, i: number) => {
-            /*
-    cid := (cacheID)(bundle.CacheInfo[i].Addr.ConnectionString())
-
-    cc, ok := cl.cacheConns[cid]
-    if !ok {
-      var err error
-      // XXX: It's problematic to pass ctx here, because canceling the context will destroy the cache connections!
-      // (It should only cancel this particular block-group request.)
-      cc, err = newCacheConnection(context.Background(), cl.l, bundle.CacheInfo[i].Addr.ConnectionString())
-      if err != nil {
-          return nil, errors.Wrap(err, "failed to connect to cache")
-      }
-      cl.cacheConns[cid] = cc
-    }
-    cacheConns = append(cacheConns, cc)
-
-    blockResults[i] = &blockRequest{
-      bundle: bundle,
-      idx:    i,
-    }
-    go cl.requestBlock(ctx, cc, blockResults[i], blockResultCh)
-    */
-
+        let requests = b.caches.map((cc, i: number) => {
             let blockRequest = new BlockRequest(bundle, i);
             return this.requestBlock(cc, blockRequest);
         });
@@ -232,9 +232,7 @@ export class Client {
 
         // Send the L2 ticket to each cache.
         // XXX: This should not be serialized.
-        // l2ResultCh := make(chan l2Result)
-        let promises = cacheConnections.map(async (cc: CacheConnection) => {
-            // for (let i = 0; i < cacheQty; i++) {
+        let promises = b.caches.map(async (cc: CacheConnection) => {
             let tl2info = new TicketL2Info();
             tl2info.setEncryptedTicketL2(bundle.getEncryptedTicketL2());
             tl2info.setPuzzleSecret(solution.secret);
@@ -248,6 +246,7 @@ export class Client {
         let plaintextBlocks: Uint8Array[] = [];
         let blockIdx: number[] = [];
 
+        let rangeBegin = b.chunkRangeBegin();
         for (let i = 0; i < singleEncryptedBlocks.length; i++) {
             let ciphertext = singleEncryptedBlocks[i];
 
@@ -260,14 +259,51 @@ export class Client {
 
             plaintextBlocks.push(plaintext);
             blockIdx.push(bundle.getTicketRequestList()[i].getBlockIdx());
+
+            // XXX: maybe get rid of this check
+            if (blockIdx[i] !== rangeBegin + i) {
+                throw new Error(
+                    `block at position ${i} has index ${blockIdx[i]}, but expected ${rangeBegin +
+                        i} `
+                );
+            }
         }
 
         console.log('block-group fetch completed without error');
         return new BlockGroup(plaintextBlocks, blockIdx, bundle.getMetadata() as ObjectMetadata);
     }
 
+    // this function is supposed to be an example, you most likely want to do this yourself
+    async getWholeObject(path: string): Promise<Uint8Array> {
+        let bundle = await this.getFirstBundle(path);
+
+        let offset = 0;
+        let data = new Uint8Array(bundle.objectSize());
+
+        while (true) {
+            let bg = await this.fetchBundle(bundle);
+            offset = this.mergeBlockGroup(data, offset, bg);
+
+            if (bundle.remainingChunks()) {
+                bundle = await this.getFollowupBundle(bundle);
+            } else {
+                break;
+            }
+        }
+
+        return data;
+    }
+
+    mergeBlockGroup(buffer: Uint8Array, offset: number, bg: BlockGroup): number {
+        for (let i = 0; i < bg.data.length; i++) {
+            buffer.set(bg.data[i], offset);
+            offset += bg.data[i].length;
+        }
+        return offset;
+    }
+
     // TODO: cc is unused?
-    async requestBlock(cc: CacheConnection, b: BlockRequest): Promise<BlockRequest> {
+    private async requestBlock(cc: CacheConnection, b: BlockRequest): Promise<BlockRequest> {
         // Send request ticket to cache; await data.
         let reqData = util.buildClientCacheRequest(
             b.bundle,
@@ -293,7 +329,7 @@ export class Client {
         return b;
     }
 
-    grpcGetContent(remote: string, request: ContentRequest): Promise<ContentResponse> {
+    private grpcGetContent(remote: string, request: ContentRequest): Promise<ContentResponse> {
         console.log('Fetching content');
         return new Promise((resolve, reject) => {
             try {
@@ -311,7 +347,10 @@ export class Client {
         });
     }
 
-    grpcGetBlock(remote: string, request: ClientCacheRequest): Promise<ClientCacheResponseData> {
+    private grpcGetBlock(
+        remote: string,
+        request: ClientCacheRequest
+    ): Promise<ClientCacheResponseData> {
         console.log('Fetching block');
         return new Promise((resolve, reject) => {
             try {
@@ -329,7 +368,7 @@ export class Client {
         });
     }
 
-    grpcExchangeTicketL1(
+    private grpcExchangeTicketL1(
         remote: string,
         request: ClientCacheRequest
     ): Promise<ClientCacheResponseL1> {
@@ -350,7 +389,7 @@ export class Client {
         });
     }
 
-    grpcExchangeTicketL2(
+    private grpcExchangeTicketL2(
         remote: string,
         request: ClientCacheRequest
     ): Promise<ClientCacheResponseL2> {
