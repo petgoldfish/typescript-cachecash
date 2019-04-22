@@ -75,7 +75,7 @@ export class Puzzle {
             startOffset,
             (i: number, offset: number): Uint8Array => {
                 const blockLen = blocks[i].length;
-                offset = offset % (blockLen / AesBlockSize);
+                offset = offset % Math.floor(blockLen / AesBlockSize);
                 const plaintext = getCipherBlock(blocks[i], offset);
 
                 return encryptBlock(plaintext, innerKeys[i], innerIVs[i], offset);
@@ -129,7 +129,7 @@ export class Puzzle {
             blocks.length,
             solution.offset,
             (blockIdx: number, offset: number): Uint8Array => {
-                offset = offset % (blocks[blockIdx].length / AesBlockSize);
+                offset = offset % Math.floor(blocks[blockIdx].length / AesBlockSize);
                 return blocks[blockIdx].slice(offset * AesBlockSize, (offset + 1) * AesBlockSize);
             }
         );
@@ -225,19 +225,23 @@ export function runPuzzleFastSolve(
     goal: Uint8Array
 ): Solution {
     // Try all possible starting offsets and look for one that produces the result/goal value we're looking for.
-    for (let offset = 0; offset < blocks[0].length / AesBlockSize; offset++) {
+    for (
+        let startOffset = 0;
+        startOffset < Math.floor(blocks[0].length / AesBlockSize);
+        startOffset++
+    ) {
         let rounds = params.rounds;
         let blockQty = blocks.length;
-        let offset3 = offset;
+        let nextOffset = startOffset;
 
         let curLoc: Uint8Array = new Uint8Array(Sha2Size384);
         let prevLoc: Uint8Array = curLoc;
 
         for (let i = 0; i < rounds * blockQty - 1; i++) {
             const blockIdx = i % blockQty;
-            const offset2 = offset3 % (blocks[blockIdx].length / AesBlockSize);
-            const begin = offset2 * AesBlockSize;
-            const end = (offset2 + 1) * AesBlockSize;
+            const offset = nextOffset % Math.floor(blocks[blockIdx].length / AesBlockSize);
+            const begin = offset * AesBlockSize;
+            const end = (offset + 1) * AesBlockSize;
             const subblock = blocks[blockIdx].slice(begin, end);
 
             prevLoc = curLoc;
@@ -248,11 +252,11 @@ export function runPuzzleFastSolve(
             let digest = h.digest();
 
             curLoc = new Uint8Array(digest);
-            offset3 = new DataView(curLoc.buffer).getUint32(curLoc.length - 4, true); // For little endian
+            nextOffset = new DataView(curLoc.buffer).getUint32(curLoc.length - 4, true); // For little endian
         }
 
         if (equalBuffers(goal, curLoc)) {
-            return new Solution(prevLoc, offset);
+            return new Solution(prevLoc, startOffset);
         }
     }
 
