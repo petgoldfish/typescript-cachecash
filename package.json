@@ -35,7 +35,7 @@
     "prebuild": "rimraf dist",
     "start:basic": "npm run build && parcel serve -d demoout demo/basic/index.html",
     "start:bigbuckbunny": "npm run build && parcel serve -d demoout demo/bigbuckbunny/index.html",
-    "start": "npm run start:basic",
+    "start": "npm run start:bigbuckbunny",
     "test": "jest --coverage",
     "test:watch": "jest --coverage --watch",
     "test:prod": "npm run lint && npm run test -- --no-cache",
