@@ -61,9 +61,6 @@ export class Puzzle {
 
         const blockSize = blocks.map(block => {
             let blockLen = block.length;
-            if (blockLen % AesBlockSize !== 0) {
-                throw new Error('input block size is not a multiple of cipher block size');
-            }
             return blockLen / AesBlockSize;
         });
 
