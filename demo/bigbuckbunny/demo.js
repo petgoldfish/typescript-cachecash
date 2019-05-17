@@ -2,17 +2,16 @@ const cachecash = require('../../browser/browser'); // '../dist/index' for NodeJ
 
 
 async function runTransfer(path, cb, done) {
-    var pubkey = new Uint8Array([
+    var pubkey = new cachecash.PublicKey();
+    pubkey.setPublicKey(new Uint8Array([
         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-    ]);
+    ]));
     var privkey = new Uint8Array([
         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63
     ]);
-    var pubkey2 = new cachecash.PublicKey();
-    pubkey2.setPublicKey(pubkey);
 
     console.time('fetch');
-    var cl = window.client = new cachecash.Client('http://localhost:8043', pubkey2, privkey);
+    var cl = window.client = new cachecash.Client('http://localhost:8043', pubkey, privkey);
     console.log('created client');
 
     let bundle = await cl.getFirstBundle(path);
