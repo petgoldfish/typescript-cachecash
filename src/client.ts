@@ -309,6 +309,7 @@ export class Client {
             b.bundle,
             b.bundle.getTicketRequestList()[b.idx]
         );
+        console.log('fetching from cache: ', cc.getRemote());
         let msgData = await this.grpcGetBlock(cc.getRemote(), reqData);
         console.log('got data response from cache (in bytes)', msgData.getData_asU8().length);
 
