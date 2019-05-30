@@ -142,7 +142,7 @@ async function run(): Promise<void> {
     let cl = new Client(location.publisher, pubkey2, privkey);
     console.log('created client');
 
-    let o = await cl.getObject(location.path);
+    let o = await cl.getWholeObject(location.path);
     console.log('fetch complete; shutting down client');
 
     function toHexString(byteArray: Uint8Array | ArrayBuffer) {

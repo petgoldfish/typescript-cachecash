@@ -112,7 +112,7 @@ describe('Integration tests', () => {
         let cl = new Client('http://localhost:8043', pubkey2, privkey);
         console.log('created client');
 
-        let o = await cl.getObject('/file0.bin');
+        let o = await cl.getWholeObject('/file0.bin');
         console.log('fetch complete; shutting down client');
 
         function toHexString(byteArray: Uint8Array | ArrayBuffer) {
@@ -122,7 +122,7 @@ describe('Integration tests', () => {
                 })
                 .join('');
         }
-        console.log(toHexString(o.data.slice(0, 100)));
+        console.log(toHexString(o.slice(0, 100)));
 
         console.log('completed without error');
     });

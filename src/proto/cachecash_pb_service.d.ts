@@ -66,6 +66,54 @@ export class CachePublisher {
     static readonly CacheMiss: CachePublisherCacheMiss;
 }
 
+type NodeBootstrapdAnnounceCache = {
+    readonly methodName: string;
+    readonly service: typeof NodeBootstrapd;
+    readonly requestStream: false;
+    readonly responseStream: false;
+    readonly requestType: typeof cachecash_pb.CacheAnnounceRequest;
+    readonly responseType: typeof cachecash_pb.CacheAnnounceResponse;
+};
+
+type NodeBootstrapdFetchCaches = {
+    readonly methodName: string;
+    readonly service: typeof NodeBootstrapd;
+    readonly requestStream: false;
+    readonly responseStream: false;
+    readonly requestType: typeof cachecash_pb.CacheFetchRequest;
+    readonly responseType: typeof cachecash_pb.CacheFetchResponse;
+};
+
+export class NodeBootstrapd {
+    static readonly serviceName: string;
+    static readonly AnnounceCache: NodeBootstrapdAnnounceCache;
+    static readonly FetchCaches: NodeBootstrapdFetchCaches;
+}
+
+type PublisherCacheOfferEscrow = {
+    readonly methodName: string;
+    readonly service: typeof PublisherCache;
+    readonly requestStream: false;
+    readonly responseStream: false;
+    readonly requestType: typeof cachecash_pb.EscrowOfferRequest;
+    readonly responseType: typeof cachecash_pb.EscrowOfferResponse;
+};
+
+type PublisherCachePingCache = {
+    readonly methodName: string;
+    readonly service: typeof PublisherCache;
+    readonly requestStream: false;
+    readonly responseStream: false;
+    readonly requestType: typeof cachecash_pb.PingCacheRequest;
+    readonly responseType: typeof cachecash_pb.PingCacheResponse;
+};
+
+export class PublisherCache {
+    static readonly serviceName: string;
+    static readonly OfferEscrow: PublisherCacheOfferEscrow;
+    static readonly PingCache: PublisherCachePingCache;
+}
+
 export type ServiceError = { message: string; code: number; metadata: grpc.Metadata };
 export type Status = { details: string; code: number; metadata: grpc.Metadata };
 
@@ -183,6 +231,78 @@ export class CachePublisherClient {
         callback: (
             error: ServiceError | null,
             responseMessage: cachecash_pb.CacheMissResponse | null
+        ) => void
+    ): UnaryResponse;
+}
+
+export class NodeBootstrapdClient {
+    readonly serviceHost: string;
+
+    constructor(serviceHost: string, options?: grpc.RpcOptions);
+    announceCache(
+        requestMessage: cachecash_pb.CacheAnnounceRequest,
+        metadata: grpc.Metadata,
+        callback: (
+            error: ServiceError | null,
+            responseMessage: cachecash_pb.CacheAnnounceResponse | null
+        ) => void
+    ): UnaryResponse;
+    announceCache(
+        requestMessage: cachecash_pb.CacheAnnounceRequest,
+        callback: (
+            error: ServiceError | null,
+            responseMessage: cachecash_pb.CacheAnnounceResponse | null
+        ) => void
+    ): UnaryResponse;
+    fetchCaches(
+        requestMessage: cachecash_pb.CacheFetchRequest,
+        metadata: grpc.Metadata,
+        callback: (
+            error: ServiceError | null,
+            responseMessage: cachecash_pb.CacheFetchResponse | null
+        ) => void
+    ): UnaryResponse;
+    fetchCaches(
+        requestMessage: cachecash_pb.CacheFetchRequest,
+        callback: (
+            error: ServiceError | null,
+            responseMessage: cachecash_pb.CacheFetchResponse | null
+        ) => void
+    ): UnaryResponse;
+}
+
+export class PublisherCacheClient {
+    readonly serviceHost: string;
+
+    constructor(serviceHost: string, options?: grpc.RpcOptions);
+    offerEscrow(
+        requestMessage: cachecash_pb.EscrowOfferRequest,
+        metadata: grpc.Metadata,
+        callback: (
+            error: ServiceError | null,
+            responseMessage: cachecash_pb.EscrowOfferResponse | null
+        ) => void
+    ): UnaryResponse;
+    offerEscrow(
+        requestMessage: cachecash_pb.EscrowOfferRequest,
+        callback: (
+            error: ServiceError | null,
+            responseMessage: cachecash_pb.EscrowOfferResponse | null
+        ) => void
+    ): UnaryResponse;
+    pingCache(
+        requestMessage: cachecash_pb.PingCacheRequest,
+        metadata: grpc.Metadata,
+        callback: (
+            error: ServiceError | null,
+            responseMessage: cachecash_pb.PingCacheResponse | null
+        ) => void
+    ): UnaryResponse;
+    pingCache(
+        requestMessage: cachecash_pb.PingCacheRequest,
+        callback: (
+            error: ServiceError | null,
+            responseMessage: cachecash_pb.PingCacheResponse | null
         ) => void
     ): UnaryResponse;
 }

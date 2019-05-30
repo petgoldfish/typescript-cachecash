@@ -1119,3 +1119,310 @@ export namespace ObjectMetadata {
         cacheExpiration: string;
     };
 }
+
+export class CacheAnnounceRequest extends jspb.Message {
+    getPublicKey(): Uint8Array | string;
+    getPublicKey_asU8(): Uint8Array;
+    getPublicKey_asB64(): string;
+    setPublicKey(value: Uint8Array | string): void;
+
+    getVersion(): string;
+    setVersion(value: string): void;
+
+    getFreeMemory(): number;
+    setFreeMemory(value: number): void;
+
+    getTotalMemory(): number;
+    setTotalMemory(value: number): void;
+
+    getFreeDisk(): number;
+    setFreeDisk(value: number): void;
+
+    getTotalDisk(): number;
+    setTotalDisk(value: number): void;
+
+    getStartupTime(): number;
+    setStartupTime(value: number): void;
+
+    getContactUrl(): string;
+    setContactUrl(value: string): void;
+
+    getPort(): number;
+    setPort(value: number): void;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): CacheAnnounceRequest.AsObject;
+    static toObject(
+        includeInstance: boolean,
+        msg: CacheAnnounceRequest
+    ): CacheAnnounceRequest.AsObject;
+    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+    static extensionsBinary: { [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message> };
+    static serializeBinaryToWriter(message: CacheAnnounceRequest, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): CacheAnnounceRequest;
+    static deserializeBinaryFromReader(
+        message: CacheAnnounceRequest,
+        reader: jspb.BinaryReader
+    ): CacheAnnounceRequest;
+}
+
+export namespace CacheAnnounceRequest {
+    export type AsObject = {
+        publicKey: Uint8Array | string;
+        version: string;
+        freeMemory: number;
+        totalMemory: number;
+        freeDisk: number;
+        totalDisk: number;
+        startupTime: number;
+        contactUrl: string;
+        port: number;
+    };
+}
+
+export class CacheAnnounceResponse extends jspb.Message {
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): CacheAnnounceResponse.AsObject;
+    static toObject(
+        includeInstance: boolean,
+        msg: CacheAnnounceResponse
+    ): CacheAnnounceResponse.AsObject;
+    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+    static extensionsBinary: { [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message> };
+    static serializeBinaryToWriter(message: CacheAnnounceResponse, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): CacheAnnounceResponse;
+    static deserializeBinaryFromReader(
+        message: CacheAnnounceResponse,
+        reader: jspb.BinaryReader
+    ): CacheAnnounceResponse;
+}
+
+export namespace CacheAnnounceResponse {
+    export type AsObject = {};
+}
+
+export class CacheFetchRequest extends jspb.Message {
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): CacheFetchRequest.AsObject;
+    static toObject(includeInstance: boolean, msg: CacheFetchRequest): CacheFetchRequest.AsObject;
+    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+    static extensionsBinary: { [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message> };
+    static serializeBinaryToWriter(message: CacheFetchRequest, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): CacheFetchRequest;
+    static deserializeBinaryFromReader(
+        message: CacheFetchRequest,
+        reader: jspb.BinaryReader
+    ): CacheFetchRequest;
+}
+
+export namespace CacheFetchRequest {
+    export type AsObject = {};
+}
+
+export class CacheDescription extends jspb.Message {
+    getPublicKey(): Uint8Array | string;
+    getPublicKey_asU8(): Uint8Array;
+    getPublicKey_asB64(): string;
+    setPublicKey(value: Uint8Array | string): void;
+
+    getVersion(): string;
+    setVersion(value: string): void;
+
+    getFreeMemory(): number;
+    setFreeMemory(value: number): void;
+
+    getTotalMemory(): number;
+    setTotalMemory(value: number): void;
+
+    getFreeDisk(): number;
+    setFreeDisk(value: number): void;
+
+    getTotalDisk(): number;
+    setTotalDisk(value: number): void;
+
+    getStartupTime(): number;
+    setStartupTime(value: number): void;
+
+    getContactUrl(): string;
+    setContactUrl(value: string): void;
+
+    getExternalIp(): string;
+    setExternalIp(value: string): void;
+
+    getPort(): number;
+    setPort(value: number): void;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): CacheDescription.AsObject;
+    static toObject(includeInstance: boolean, msg: CacheDescription): CacheDescription.AsObject;
+    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+    static extensionsBinary: { [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message> };
+    static serializeBinaryToWriter(message: CacheDescription, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): CacheDescription;
+    static deserializeBinaryFromReader(
+        message: CacheDescription,
+        reader: jspb.BinaryReader
+    ): CacheDescription;
+}
+
+export namespace CacheDescription {
+    export type AsObject = {
+        publicKey: Uint8Array | string;
+        version: string;
+        freeMemory: number;
+        totalMemory: number;
+        freeDisk: number;
+        totalDisk: number;
+        startupTime: number;
+        contactUrl: string;
+        externalIp: string;
+        port: number;
+    };
+}
+
+export class CacheFetchResponse extends jspb.Message {
+    clearCachesList(): void;
+    getCachesList(): Array<CacheDescription>;
+    setCachesList(value: Array<CacheDescription>): void;
+    addCaches(value?: CacheDescription, index?: number): CacheDescription;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): CacheFetchResponse.AsObject;
+    static toObject(includeInstance: boolean, msg: CacheFetchResponse): CacheFetchResponse.AsObject;
+    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+    static extensionsBinary: { [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message> };
+    static serializeBinaryToWriter(message: CacheFetchResponse, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): CacheFetchResponse;
+    static deserializeBinaryFromReader(
+        message: CacheFetchResponse,
+        reader: jspb.BinaryReader
+    ): CacheFetchResponse;
+}
+
+export namespace CacheFetchResponse {
+    export type AsObject = {
+        cachesList: Array<CacheDescription.AsObject>;
+    };
+}
+
+export class EscrowOfferRequest extends jspb.Message {
+    getEscrowId(): Uint8Array | string;
+    getEscrowId_asU8(): Uint8Array;
+    getEscrowId_asB64(): string;
+    setEscrowId(value: Uint8Array | string): void;
+
+    getInnerMasterKey(): Uint8Array | string;
+    getInnerMasterKey_asU8(): Uint8Array;
+    getInnerMasterKey_asB64(): string;
+    setInnerMasterKey(value: Uint8Array | string): void;
+
+    getOuterMasterKey(): Uint8Array | string;
+    getOuterMasterKey_asU8(): Uint8Array;
+    getOuterMasterKey_asB64(): string;
+    setOuterMasterKey(value: Uint8Array | string): void;
+
+    getSlots(): number;
+    setSlots(value: number): void;
+
+    getPublisherCacheAddr(): string;
+    setPublisherCacheAddr(value: string): void;
+
+    getStartBlock(): number;
+    setStartBlock(value: number): void;
+
+    getEndBlock(): number;
+    setEndBlock(value: number): void;
+
+    getPublicKey(): Uint8Array | string;
+    getPublicKey_asU8(): Uint8Array;
+    getPublicKey_asB64(): string;
+    setPublicKey(value: Uint8Array | string): void;
+
+    getPrivateKey(): Uint8Array | string;
+    getPrivateKey_asU8(): Uint8Array;
+    getPrivateKey_asB64(): string;
+    setPrivateKey(value: Uint8Array | string): void;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): EscrowOfferRequest.AsObject;
+    static toObject(includeInstance: boolean, msg: EscrowOfferRequest): EscrowOfferRequest.AsObject;
+    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+    static extensionsBinary: { [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message> };
+    static serializeBinaryToWriter(message: EscrowOfferRequest, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): EscrowOfferRequest;
+    static deserializeBinaryFromReader(
+        message: EscrowOfferRequest,
+        reader: jspb.BinaryReader
+    ): EscrowOfferRequest;
+}
+
+export namespace EscrowOfferRequest {
+    export type AsObject = {
+        escrowId: Uint8Array | string;
+        innerMasterKey: Uint8Array | string;
+        outerMasterKey: Uint8Array | string;
+        slots: number;
+        publisherCacheAddr: string;
+        startBlock: number;
+        endBlock: number;
+        publicKey: Uint8Array | string;
+        privateKey: Uint8Array | string;
+    };
+}
+
+export class EscrowOfferResponse extends jspb.Message {
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): EscrowOfferResponse.AsObject;
+    static toObject(
+        includeInstance: boolean,
+        msg: EscrowOfferResponse
+    ): EscrowOfferResponse.AsObject;
+    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+    static extensionsBinary: { [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message> };
+    static serializeBinaryToWriter(message: EscrowOfferResponse, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): EscrowOfferResponse;
+    static deserializeBinaryFromReader(
+        message: EscrowOfferResponse,
+        reader: jspb.BinaryReader
+    ): EscrowOfferResponse;
+}
+
+export namespace EscrowOfferResponse {
+    export type AsObject = {};
+}
+
+export class PingCacheRequest extends jspb.Message {
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): PingCacheRequest.AsObject;
+    static toObject(includeInstance: boolean, msg: PingCacheRequest): PingCacheRequest.AsObject;
+    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+    static extensionsBinary: { [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message> };
+    static serializeBinaryToWriter(message: PingCacheRequest, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): PingCacheRequest;
+    static deserializeBinaryFromReader(
+        message: PingCacheRequest,
+        reader: jspb.BinaryReader
+    ): PingCacheRequest;
+}
+
+export namespace PingCacheRequest {
+    export type AsObject = {};
+}
+
+export class PingCacheResponse extends jspb.Message {
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): PingCacheResponse.AsObject;
+    static toObject(includeInstance: boolean, msg: PingCacheResponse): PingCacheResponse.AsObject;
+    static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+    static extensionsBinary: { [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message> };
+    static serializeBinaryToWriter(message: PingCacheResponse, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): PingCacheResponse;
+    static deserializeBinaryFromReader(
+        message: PingCacheResponse,
+        reader: jspb.BinaryReader
+    ): PingCacheResponse;
+}
+
+export namespace PingCacheResponse {
+    export type AsObject = {};
+}

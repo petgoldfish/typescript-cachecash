@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     var cl = window.client = new cachecash.Client('http://localhost:8043', pubkey2, privkey);
     console.log('created client');
 
-    var o = await cl.getObject('/file0.bin');
+    var o = await cl.getWholeObject('/file0.bin');
     console.log('fetch complete; shutting down client');
 
     function toHexString(byteArray) {
@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             })
             .join('');
     }
-    console.log(toHexString(o.data.slice(0, 100)));
+    console.log(toHexString(o.slice(0, 100)));
 
     console.log('completed without error');
     console.timeEnd('fetch');

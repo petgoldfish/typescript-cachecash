@@ -20,12 +20,16 @@ function randBytes(n: number): Uint8Array {
     return new Uint8Array([...bytes]);
 }
 
-function setupSuite() {
+function setupSuite(chunkSizeModifier?: number) {
     let plaintextBlocks: Uint8Array[] = [];
     let ciphertextBlocks: Uint8Array[] = [];
     let innerKeys: Uint8Array[] = [];
     let innerIVs: Uint8Array[] = [];
     let params = new Parameters(2, 0, 0);
+
+    if (!chunkSizeModifier) {
+        chunkSizeModifier = 1;
+    }
 
     for (let i = 0; i < BlockQty; i++) {
         let k = randBytes(16);
@@ -35,7 +39,7 @@ function setupSuite() {
         innerIVs.push(iv);
 
         // TODO: The blocks need not all be the same size.
-        let b = randBytes(BlockSize);
+        let b = randBytes(Math.floor(BlockSize * chunkSizeModifier));
         plaintextBlocks.push(b);
 
         // encrypt block
@@ -89,6 +93,11 @@ describe('Colocation puzzle solver', () => {
     it('generate and solve single block', () => {
         let suite = setupSuite();
         return suite.generateAndSolve(0, 1);
+    });
+
+    it('generate and solve unusual chunk size', () => {
+        let suite = setupSuite(0.9);
+        return suite.generateAndSolve(0, 4);
     });
 
     it('challenge and verify', () => {
@@ -230,16 +239,6 @@ describe('Colocation puzzle solver', () => {
                 'must use at least two puzzle iterations; increase number of rounds or caches'
             )
         );
-
-        params.rounds = 2;
-        expect(() => {
-            Puzzle.generate(
-                params,
-                [new Uint8Array([1, 2])],
-                [new Uint8Array([1, 2])],
-                [new Uint8Array([1, 2])]
-            );
-        }).toThrow(new Error('input block size is not a multiple of cipher block size'));
     });
 
     it('throws on invalid solution', () => {
