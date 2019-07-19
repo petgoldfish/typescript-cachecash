@@ -683,8 +683,10 @@ export namespace ContentRequest {
         getBacklogDepth(): number;
         setBacklogDepth(value: number): void;
 
-        getStatus(): ContentRequest.ClientCacheStatus.Status;
-        setStatus(value: ContentRequest.ClientCacheStatus.Status): void;
+        getStatus(): ContentRequest.ClientCacheStatus.StatusMap[keyof ContentRequest.ClientCacheStatus.StatusMap];
+        setStatus(
+            value: ContentRequest.ClientCacheStatus.StatusMap[keyof ContentRequest.ClientCacheStatus.StatusMap]
+        ): void;
 
         serializeBinary(): Uint8Array;
         toObject(includeInstance?: boolean): ClientCacheStatus.AsObject;
@@ -705,13 +707,15 @@ export namespace ContentRequest {
     export namespace ClientCacheStatus {
         export type AsObject = {
             backlogDepth: number;
-            status: ContentRequest.ClientCacheStatus.Status;
+            status: ContentRequest.ClientCacheStatus.StatusMap[keyof ContentRequest.ClientCacheStatus.StatusMap];
         };
 
-        export enum Status {
-            DEFAULT = 0,
-            UNUSABLE = 1
+        export interface StatusMap {
+            DEFAULT: 0;
+            UNUSABLE: 1;
         }
+
+        export const Status: StatusMap;
     }
 }
 
