@@ -248,6 +248,11 @@ export class CacheInfo extends jspb.Message {
     getAddr(): NetworkAddress | undefined;
     setAddr(value?: NetworkAddress): void;
 
+    hasPubkey(): boolean;
+    clearPubkey(): void;
+    getPubkey(): PublicKey | undefined;
+    setPubkey(value?: PublicKey): void;
+
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): CacheInfo.AsObject;
     static toObject(includeInstance: boolean, msg: CacheInfo): CacheInfo.AsObject;
@@ -261,6 +266,7 @@ export class CacheInfo extends jspb.Message {
 export namespace CacheInfo {
     export type AsObject = {
         addr?: NetworkAddress.AsObject;
+        pubkey?: PublicKey.AsObject;
     };
 }
 
@@ -407,18 +413,18 @@ export namespace BlockKey {
 }
 
 export class TicketRequest extends jspb.Message {
-    getBlockIdx(): number;
-    setBlockIdx(value: number): void;
+    getChunkIdx(): number;
+    setChunkIdx(value: number): void;
 
     hasInnerKey(): boolean;
     clearInnerKey(): void;
     getInnerKey(): BlockKey | undefined;
     setInnerKey(value?: BlockKey): void;
 
-    getBlockId(): Uint8Array | string;
-    getBlockId_asU8(): Uint8Array;
-    getBlockId_asB64(): string;
-    setBlockId(value: Uint8Array | string): void;
+    getChunkId(): Uint8Array | string;
+    getChunkId_asU8(): Uint8Array;
+    getChunkId_asB64(): string;
+    setChunkId(value: Uint8Array | string): void;
 
     hasCachePublicKey(): boolean;
     clearCachePublicKey(): void;
@@ -440,9 +446,9 @@ export class TicketRequest extends jspb.Message {
 
 export namespace TicketRequest {
     export type AsObject = {
-        blockIdx: number;
+        chunkIdx: number;
         innerKey?: BlockKey.AsObject;
-        blockId: Uint8Array | string;
+        chunkId: Uint8Array | string;
         cachePublicKey?: PublicKey.AsObject;
     };
 }
@@ -456,8 +462,8 @@ export class TicketL1 extends jspb.Message {
     getCachePublicKey(): PublicKey | undefined;
     setCachePublicKey(value?: PublicKey): void;
 
-    getBlockIdx(): number;
-    setBlockIdx(value: number): void;
+    getChunkIdx(): number;
+    setChunkIdx(value: number): void;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): TicketL1.AsObject;
@@ -473,7 +479,7 @@ export namespace TicketL1 {
     export type AsObject = {
         ticketNo: number;
         cachePublicKey?: PublicKey.AsObject;
-        blockIdx: number;
+        chunkIdx: number;
     };
 }
 
@@ -648,6 +654,8 @@ export class ContentRequest extends jspb.Message {
     getSequenceNo(): number;
     setSequenceNo(value: number): void;
 
+    getCacheStatusMap(): jspb.Map<string, ContentRequest.ClientCacheStatus>;
+    clearCacheStatusMap(): void;
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ContentRequest.AsObject;
     static toObject(includeInstance: boolean, msg: ContentRequest): ContentRequest.AsObject;
@@ -668,7 +676,43 @@ export namespace ContentRequest {
         rangeBegin: number;
         rangeEnd: number;
         sequenceNo: number;
+        cacheStatusMap: Array<[string, ContentRequest.ClientCacheStatus.AsObject]>;
     };
+
+    export class ClientCacheStatus extends jspb.Message {
+        getBacklogDepth(): number;
+        setBacklogDepth(value: number): void;
+
+        getStatus(): ContentRequest.ClientCacheStatus.Status;
+        setStatus(value: ContentRequest.ClientCacheStatus.Status): void;
+
+        serializeBinary(): Uint8Array;
+        toObject(includeInstance?: boolean): ClientCacheStatus.AsObject;
+        static toObject(
+            includeInstance: boolean,
+            msg: ClientCacheStatus
+        ): ClientCacheStatus.AsObject;
+        static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
+        static extensionsBinary: { [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message> };
+        static serializeBinaryToWriter(message: ClientCacheStatus, writer: jspb.BinaryWriter): void;
+        static deserializeBinary(bytes: Uint8Array): ClientCacheStatus;
+        static deserializeBinaryFromReader(
+            message: ClientCacheStatus,
+            reader: jspb.BinaryReader
+        ): ClientCacheStatus;
+    }
+
+    export namespace ClientCacheStatus {
+        export type AsObject = {
+            backlogDepth: number;
+            status: ContentRequest.ClientCacheStatus.Status;
+        };
+
+        export enum Status {
+            DEFAULT = 0,
+            UNUSABLE = 1
+        }
+    }
 }
 
 export class ContentResponse extends jspb.Message {
@@ -680,10 +724,10 @@ export class ContentResponse extends jspb.Message {
     getError(): Error | undefined;
     setError(value?: Error): void;
 
-    hasBundle(): boolean;
-    clearBundle(): void;
-    getBundle(): TicketBundle | undefined;
-    setBundle(value?: TicketBundle): void;
+    clearBundlesList(): void;
+    getBundlesList(): Array<TicketBundle>;
+    setBundlesList(value: Array<TicketBundle>): void;
+    addBundles(value?: TicketBundle, index?: number): TicketBundle;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ContentResponse.AsObject;
@@ -702,7 +746,7 @@ export namespace ContentResponse {
     export type AsObject = {
         requestSequenceNo: number;
         error?: Error.AsObject;
-        bundle?: TicketBundle.AsObject;
+        bundlesList: Array<TicketBundle.AsObject>;
     };
 }
 
@@ -988,13 +1032,13 @@ export class Chunk extends jspb.Message {
 
     hasHttp(): boolean;
     clearHttp(): void;
-    getHttp(): BlockSourceHTTP | undefined;
-    setHttp(value?: BlockSourceHTTP): void;
+    getHttp(): ChunkSourceHTTP | undefined;
+    setHttp(value?: ChunkSourceHTTP): void;
 
     hasInline(): boolean;
     clearInline(): void;
-    getInline(): BlockSourceInline | undefined;
-    setInline(value?: BlockSourceInline): void;
+    getInline(): ChunkSourceInline | undefined;
+    setInline(value?: ChunkSourceInline): void;
 
     getSourceCase(): Chunk.SourceCase;
     serializeBinary(): Uint8Array;
@@ -1010,8 +1054,8 @@ export class Chunk extends jspb.Message {
 export namespace Chunk {
     export type AsObject = {
         slotIdx: number;
-        http?: BlockSourceHTTP.AsObject;
-        inline?: BlockSourceInline.AsObject;
+        http?: ChunkSourceHTTP.AsObject;
+        inline?: ChunkSourceInline.AsObject;
     };
 
     export enum SourceCase {
@@ -1021,7 +1065,7 @@ export namespace Chunk {
     }
 }
 
-export class BlockSourceHTTP extends jspb.Message {
+export class ChunkSourceHTTP extends jspb.Message {
     getUrl(): string;
     setUrl(value: string): void;
 
@@ -1032,19 +1076,19 @@ export class BlockSourceHTTP extends jspb.Message {
     setRangeEnd(value: number): void;
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): BlockSourceHTTP.AsObject;
-    static toObject(includeInstance: boolean, msg: BlockSourceHTTP): BlockSourceHTTP.AsObject;
+    toObject(includeInstance?: boolean): ChunkSourceHTTP.AsObject;
+    static toObject(includeInstance: boolean, msg: ChunkSourceHTTP): ChunkSourceHTTP.AsObject;
     static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
     static extensionsBinary: { [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message> };
-    static serializeBinaryToWriter(message: BlockSourceHTTP, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): BlockSourceHTTP;
+    static serializeBinaryToWriter(message: ChunkSourceHTTP, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): ChunkSourceHTTP;
     static deserializeBinaryFromReader(
-        message: BlockSourceHTTP,
+        message: ChunkSourceHTTP,
         reader: jspb.BinaryReader
-    ): BlockSourceHTTP;
+    ): ChunkSourceHTTP;
 }
 
-export namespace BlockSourceHTTP {
+export namespace ChunkSourceHTTP {
     export type AsObject = {
         url: string;
         rangeBegin: number;
@@ -1052,30 +1096,30 @@ export namespace BlockSourceHTTP {
     };
 }
 
-export class BlockSourceInline extends jspb.Message {
-    clearBlockList(): void;
-    getBlockList(): Array<Uint8Array | string>;
-    getBlockList_asU8(): Array<Uint8Array>;
-    getBlockList_asB64(): Array<string>;
-    setBlockList(value: Array<Uint8Array | string>): void;
-    addBlock(value: Uint8Array | string, index?: number): Uint8Array | string;
+export class ChunkSourceInline extends jspb.Message {
+    clearChunkList(): void;
+    getChunkList(): Array<Uint8Array | string>;
+    getChunkList_asU8(): Array<Uint8Array>;
+    getChunkList_asB64(): Array<string>;
+    setChunkList(value: Array<Uint8Array | string>): void;
+    addChunk(value: Uint8Array | string, index?: number): Uint8Array | string;
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): BlockSourceInline.AsObject;
-    static toObject(includeInstance: boolean, msg: BlockSourceInline): BlockSourceInline.AsObject;
+    toObject(includeInstance?: boolean): ChunkSourceInline.AsObject;
+    static toObject(includeInstance: boolean, msg: ChunkSourceInline): ChunkSourceInline.AsObject;
     static extensions: { [key: number]: jspb.ExtensionFieldInfo<jspb.Message> };
     static extensionsBinary: { [key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message> };
-    static serializeBinaryToWriter(message: BlockSourceInline, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): BlockSourceInline;
+    static serializeBinaryToWriter(message: ChunkSourceInline, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): ChunkSourceInline;
     static deserializeBinaryFromReader(
-        message: BlockSourceInline,
+        message: ChunkSourceInline,
         reader: jspb.BinaryReader
-    ): BlockSourceInline;
+    ): ChunkSourceInline;
 }
 
-export namespace BlockSourceInline {
+export namespace ChunkSourceInline {
     export type AsObject = {
-        blockList: Array<Uint8Array | string>;
+        chunkList: Array<Uint8Array | string>;
     };
 }
 
@@ -1083,8 +1127,8 @@ export class ObjectMetadata extends jspb.Message {
     getObjectSize(): number;
     setObjectSize(value: number): void;
 
-    getBlockSize(): number;
-    setBlockSize(value: number): void;
+    getChunkSize(): number;
+    setChunkSize(value: number): void;
 
     getEtag(): Uint8Array | string;
     getEtag_asU8(): Uint8Array;
@@ -1096,6 +1140,12 @@ export class ObjectMetadata extends jspb.Message {
 
     getCacheExpiration(): string;
     setCacheExpiration(value: string): void;
+
+    getMinimumBacklogDepth(): number;
+    setMinimumBacklogDepth(value: number): void;
+
+    getBundleRequestInterval(): number;
+    setBundleRequestInterval(value: number): void;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ObjectMetadata.AsObject;
@@ -1113,10 +1163,12 @@ export class ObjectMetadata extends jspb.Message {
 export namespace ObjectMetadata {
     export type AsObject = {
         objectSize: number;
-        blockSize: number;
+        chunkSize: number;
         etag: Uint8Array | string;
         lastModified: string;
         cacheExpiration: string;
+        minimumBacklogDepth: number;
+        bundleRequestInterval: number;
     };
 }
 
@@ -1324,8 +1376,8 @@ export class EscrowOfferRequest extends jspb.Message {
     getSlots(): number;
     setSlots(value: number): void;
 
-    getPublisherCacheAddr(): string;
-    setPublisherCacheAddr(value: string): void;
+    getPublisherAddr(): string;
+    setPublisherAddr(value: string): void;
 
     getStartBlock(): number;
     setStartBlock(value: number): void;
@@ -1362,7 +1414,7 @@ export namespace EscrowOfferRequest {
         innerMasterKey: Uint8Array | string;
         outerMasterKey: Uint8Array | string;
         slots: number;
-        publisherCacheAddr: string;
+        publisherAddr: string;
         startBlock: number;
         endBlock: number;
         publicKey: Uint8Array | string;

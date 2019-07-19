@@ -18,7 +18,7 @@ export class ClientPublisher {
     static readonly GetContent: ClientPublisherGetContent;
 }
 
-type ClientCacheGetBlock = {
+type ClientCacheGetChunk = {
     readonly methodName: string;
     readonly service: typeof ClientCache;
     readonly requestStream: false;
@@ -47,7 +47,7 @@ type ClientCacheExchangeTicketL2 = {
 
 export class ClientCache {
     static readonly serviceName: string;
-    static readonly GetBlock: ClientCacheGetBlock;
+    static readonly GetChunk: ClientCacheGetChunk;
     static readonly ExchangeTicketL1: ClientCacheExchangeTicketL1;
     static readonly ExchangeTicketL2: ClientCacheExchangeTicketL2;
 }
@@ -167,7 +167,7 @@ export class ClientCacheClient {
     readonly serviceHost: string;
 
     constructor(serviceHost: string, options?: grpc.RpcOptions);
-    getBlock(
+    getChunk(
         requestMessage: cachecash_pb.ClientCacheRequest,
         metadata: grpc.Metadata,
         callback: (
@@ -175,7 +175,7 @@ export class ClientCacheClient {
             responseMessage: cachecash_pb.ClientCacheResponseData | null
         ) => void
     ): UnaryResponse;
-    getBlock(
+    getChunk(
         requestMessage: cachecash_pb.ClientCacheRequest,
         callback: (
             error: ServiceError | null,

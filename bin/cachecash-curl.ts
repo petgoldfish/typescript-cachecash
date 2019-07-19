@@ -145,20 +145,11 @@ async function run(): Promise<void> {
     let o = await cl.getWholeObject(location.path);
     console.log('fetch complete; shutting down client');
 
-    function toHexString(byteArray: Uint8Array | ArrayBuffer) {
-        return Array.prototype.map
-            .call(byteArray, function(byte: number) {
-                return ('0' + (byte & 0xff).toString(16)).slice(-2);
-            })
-            .join('');
-    }
-    console.log(toHexString(o.data.slice(0, 100)));
-
     if (output) {
         const fs_writeFile = promisify(fs.writeFile)
-        await fs_writeFile(output, o.data);
+        await fs_writeFile(output, o);
     }
 
     console.log('completed without error');
 }
-run()
+run().catch(error => console.error('Error: ', error))
