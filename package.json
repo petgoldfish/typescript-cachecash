@@ -31,7 +31,7 @@
     "bundle:browser": "parcel build -d browser --out-file browser.js --global cachecash src/index.ts",
     "bundle:node": "parcel build --target node src/index.ts",
     "build": "npm run compile && npm run bundle:browser && npm run bundle:node",
-    "lint": "tslint  --project tsconfig.json -t codeFrame 'src/**/*.ts' 'test/**/*.ts'",
+    "lint": "tslint  --project tsconfig.json -t codeFrame --exclude src/proto/cachecash_pb.d.ts 'src/**/*.ts' 'test/**/*.ts'",
     "prebuild": "rimraf dist",
     "start:basic": "npm run build && parcel serve -d demoout demo/basic/index.html",
     "start:bigbuckbunny": "npm run build && parcel serve -d demoout demo/bigbuckbunny/index.html",
