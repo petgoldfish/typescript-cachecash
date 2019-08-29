@@ -31,7 +31,7 @@ export class DataObject {
     }
 }
 
-export class BlockGroup {
+export class ChunkGroup {
     data: Uint8Array[];
     blockIdx: number[];
     metadata: ObjectMetadata;
@@ -43,7 +43,7 @@ export class BlockGroup {
     }
 }
 
-export class BlockRequest {
+export class ChunkRequest {
     bundle: TicketBundle;
     idx: number;
 
@@ -58,8 +58,8 @@ export class BlockRequest {
     }
 }
 
-function calculateBlockCount(m: ObjectMetadata): number {
-    return Math.ceil(m.getObjectSize() / m.getBlockSize());
+function calculateChunkCount(m: ObjectMetadata): number {
+    return Math.ceil(m.getObjectSize() / m.getChunkSize());
 }
 
 // XXX: this is a naive way to turn the NetworkAddress into an url
@@ -107,12 +107,12 @@ export class Bundle {
     // assume all blocks are full
     private estimatedBundleLength(): number {
         const m = this.bundle.getMetadata() as ObjectMetadata;
-        return this.caches.length * m.getBlockSize();
+        return this.caches.length * m.getChunkSize();
     }
 
     blockSize(): number {
         const m = this.bundle.getMetadata() as ObjectMetadata;
-        return m.getBlockSize();
+        return m.getChunkSize();
     }
 
     objectSize(): number {
@@ -125,7 +125,7 @@ export class Bundle {
         const remainingBytes = m.getObjectSize() - this.rangeBegin - this.estimatedBundleLength();
 
         if (remainingBytes > 0) {
-            return Math.ceil(remainingBytes / m.getBlockSize());
+            return Math.ceil(remainingBytes / m.getChunkSize());
         } else {
             return 0;
         }
@@ -133,7 +133,7 @@ export class Bundle {
 
     chunkRangeBegin(): number {
         const m = this.bundle.getMetadata() as ObjectMetadata;
-        return Math.ceil(this.rangeBegin / m.getBlockSize());
+        return Math.ceil(this.rangeBegin / m.getChunkSize());
     }
 
     // XXX: only use this if you know there are blocks remaining
@@ -144,12 +144,14 @@ export class Bundle {
 
 export class Client {
     private publisher: string;
+    private bundleBacklog: Bundle[];
 
     private publicKey: PublicKey;
     private privateKey: Uint8Array;
 
     constructor(publisher: string, publicKey: PublicKey, privateKey: Uint8Array) {
         this.publisher = publisher;
+        this.bundleBacklog = [];
 
         this.publicKey = publicKey;
         this.privateKey = privateKey;
@@ -165,14 +167,27 @@ export class Client {
     }
 
     async getFirstBundle(path: string): Promise<Bundle> {
-        return this.getBundleInternal(path, 0);
+        // TODO: fetch bundles less aggressively
+        while (this.bundleBacklog.length < 1) {
+            await this.fetchMoreBundles(path, 0);
+        }
+        return this.bundleBacklog.shift() as Bundle;
     }
 
     async getFollowupBundle(previous: Bundle): Promise<Bundle> {
-        return this.getBundleInternal(previous.path, previous.nextRangeBegin());
+        // TODO: fetch bundles less aggressively
+        while (this.bundleBacklog.length < 1) {
+            await this.fetchMoreBundles(previous.path, previous.nextRangeBegin());
+        }
+        return this.bundleBacklog.shift() as Bundle;
     }
 
-    private async getBundleInternal(path: string, rangeBegin: number): Promise<Bundle> {
+    private async fetchMoreBundles(path: string, rangeBegin: number): Promise<void> {
+        const bundles = await this.getBundleInternal(path, rangeBegin);
+        this.bundleBacklog = this.bundleBacklog.concat(bundles);
+    }
+
+    private async getBundleInternal(path: string, rangeBegin: number): Promise<Bundle[]> {
         const req = new ContentRequest();
         req.setClientPublicKey(this.publicKey);
         req.setPath(path);
@@ -181,31 +196,39 @@ export class Client {
         console.log('sending content request to publisher:', req);
 
         const resp = await this.grpcGetContent(this.publisher, req);
-        const bundle = resp.getBundle() as TicketBundle;
-        console.log('got ticket from publisher');
+        const bundles = resp.getBundlesList();
+        console.log('got tickets from publisher: ', bundles.length);
 
-        const caches = bundle.getCacheInfoList().map((ci: CacheInfo) => {
-            let url = networkaddr2http(ci.getAddr() as NetworkAddress);
-            return new CacheConnection(url);
+        return bundles.map(b => {
+            const caches = b.getCacheInfoList().map((ci: CacheInfo) => {
+                let url = networkaddr2http(ci.getAddr() as NetworkAddress);
+                return new CacheConnection(url);
+            });
+
+            const meta = b.getMetadata() as ObjectMetadata;
+            const chunksize = meta.getChunkSize();
+            const chunks = b.getTicketRequestList().length;
+
+            const bundle = new Bundle(path, b, caches, rangeBegin);
+            rangeBegin += chunks * chunksize;
+            return bundle;
         });
-
-        return new Bundle(path, bundle, caches, rangeBegin);
     }
 
-    async fetchBundle(b: Bundle): Promise<BlockGroup> {
+    async fetchBundle(b: Bundle): Promise<ChunkGroup> {
         let bundle = b.bundle;
 
         console.log('requesting blocks from caches');
         let requests = b.caches.map((cc, i: number) => {
-            let blockRequest = new BlockRequest(bundle, i);
-            return this.requestBlock(cc, blockRequest);
+            let blockRequest = new ChunkRequest(bundle, i);
+            return this.requestChunk(cc, blockRequest);
         });
 
         let responses = await Promise.all(requests);
         console.log('got singly-encrypted data from each cache');
 
         // Solve colocation puzzle
-        let singleEncryptedBlocks = responses.map(response => response.encData as Uint8Array);
+        let singleEncryptedChunks = responses.map(response => response.encData as Uint8Array);
 
         let rem = bundle.getRemainder() as TicketBundleRemainder;
         let pi = rem.getPuzzleInfo() as ColocationPuzzleInfo;
@@ -221,7 +244,7 @@ export class Client {
         console.log('Solving puzzle');
         console.time('Puzzle solved');
         // TODO: rangeBegin, rangeEnd missing?
-        let solution = puzzle.solve(parameters, singleEncryptedBlocks);
+        let solution = puzzle.solve(parameters, singleEncryptedChunks);
         console.timeEnd('Puzzle solved');
 
         // Decrypt L2 ticket
@@ -243,22 +266,22 @@ export class Client {
         await Promise.all(promises);
 
         // Decrypt singly-encrypted blocks to produce final plaintext.
-        let plaintextBlocks: Uint8Array[] = [];
+        let plaintextChunks: Uint8Array[] = [];
         let blockIdx: number[] = [];
 
         let rangeBegin = b.chunkRangeBegin();
-        for (let i = 0; i < singleEncryptedBlocks.length; i++) {
-            let ciphertext = singleEncryptedBlocks[i];
+        for (let i = 0; i < singleEncryptedChunks.length; i++) {
+            let ciphertext = singleEncryptedChunks[i];
 
-            let plaintext = util.encryptDataBlock(
-                bundle.getTicketRequestList()[i].getBlockIdx(),
+            let plaintext = util.encryptChunk(
+                bundle.getTicketRequestList()[i].getChunkIdx(),
                 (bundle.getRemainder() as TicketBundleRemainder).getRequestSequenceNo(),
                 ticketL2.getInnerSessionKeyList()[i].getKey_asU8(),
                 ciphertext
             );
 
-            plaintextBlocks.push(plaintext);
-            blockIdx.push(bundle.getTicketRequestList()[i].getBlockIdx());
+            plaintextChunks.push(plaintext);
+            blockIdx.push(bundle.getTicketRequestList()[i].getChunkIdx());
 
             // XXX: maybe get rid of this check
             if (blockIdx[i] !== rangeBegin + i) {
@@ -270,7 +293,7 @@ export class Client {
         }
 
         console.log('block-group fetch completed without error');
-        return new BlockGroup(plaintextBlocks, blockIdx, bundle.getMetadata() as ObjectMetadata);
+        return new ChunkGroup(plaintextChunks, blockIdx, bundle.getMetadata() as ObjectMetadata);
     }
 
     // this function is supposed to be an example, you most likely want to do this yourself
@@ -282,7 +305,7 @@ export class Client {
 
         while (true) {
             let bg = await this.fetchBundle(bundle);
-            offset = this.mergeBlockGroup(data, offset, bg);
+            offset = this.mergeChunkGroup(data, offset, bg);
 
             if (bundle.remainingChunks()) {
                 bundle = await this.getFollowupBundle(bundle);
@@ -294,7 +317,7 @@ export class Client {
         return data;
     }
 
-    mergeBlockGroup(buffer: Uint8Array, offset: number, bg: BlockGroup): number {
+    mergeChunkGroup(buffer: Uint8Array, offset: number, bg: ChunkGroup): number {
         for (let i = 0; i < bg.data.length; i++) {
             buffer.set(bg.data[i], offset);
             offset += bg.data[i].length;
@@ -303,14 +326,14 @@ export class Client {
     }
 
     // TODO: cc is unused?
-    private async requestBlock(cc: CacheConnection, b: BlockRequest): Promise<BlockRequest> {
+    private async requestChunk(cc: CacheConnection, b: ChunkRequest): Promise<ChunkRequest> {
         // Send request ticket to cache; await data.
         let reqData = util.buildClientCacheRequest(
             b.bundle,
             b.bundle.getTicketRequestList()[b.idx]
         );
         console.log('fetching from cache: ', cc.getRemote());
-        let msgData = await this.grpcGetBlock(cc.getRemote(), reqData);
+        let msgData = await this.grpcGetChunk(cc.getRemote(), reqData);
         console.log('got data response from cache (in bytes)', msgData.getData_asU8().length);
 
         // Send L1 ticket to cache; await outer decryption key.
@@ -319,8 +342,8 @@ export class Client {
         console.log('got L1 response from cache');
 
         // Decrypt data
-        let encData = util.encryptDataBlock(
-            b.bundle.getTicketRequestList()[b.idx].getBlockIdx(),
+        let encData = util.encryptChunk(
+            b.bundle.getTicketRequestList()[b.idx].getChunkIdx(),
             (b.bundle.getRemainder() as TicketBundleRemainder).getRequestSequenceNo(),
             (msgL1.getOuterKey() as BlockKey).getKey_asU8(),
             msgData.getData_asU8()
@@ -348,14 +371,14 @@ export class Client {
         });
     }
 
-    private grpcGetBlock(
+    private grpcGetChunk(
         remote: string,
         request: ClientCacheRequest
     ): Promise<ClientCacheResponseData> {
         console.log('Fetching block');
         return new Promise((resolve, reject) => {
             try {
-                grpc.invoke(ClientCache.GetBlock, {
+                grpc.invoke(ClientCache.GetChunk, {
                     request,
                     host: remote,
                     onEnd: this.onEnd(reject),

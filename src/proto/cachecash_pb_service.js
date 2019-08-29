@@ -69,8 +69,8 @@ var ClientCache = (function() {
     return ClientCache;
 })();
 
-ClientCache.GetBlock = {
-    methodName: 'GetBlock',
+ClientCache.GetChunk = {
+    methodName: 'GetChunk',
     service: ClientCache,
     requestStream: false,
     responseStream: false,
@@ -103,11 +103,11 @@ function ClientCacheClient(serviceHost, options) {
     this.options = options || {};
 }
 
-ClientCacheClient.prototype.getBlock = function getBlock(requestMessage, metadata, callback) {
+ClientCacheClient.prototype.getChunk = function getChunk(requestMessage, metadata, callback) {
     if (arguments.length === 2) {
         callback = arguments[1];
     }
-    var client = grpc.unary(ClientCache.GetBlock, {
+    var client = grpc.unary(ClientCache.GetChunk, {
         request: requestMessage,
         host: this.serviceHost,
         metadata: metadata,

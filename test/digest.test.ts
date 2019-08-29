@@ -1101,7 +1101,7 @@ describe('digest calculation', () => {
         cachePublicKey.setPublicKey(new Uint8Array([1, 2, 4, 5, 6]));
 
         const m = new TicketRequest();
-        m.setBlockIdx(123);
+        m.setChunkIdx(123);
         m.setInnerKey(innerKey);
         m.setCachePublicKey(cachePublicKey);
 

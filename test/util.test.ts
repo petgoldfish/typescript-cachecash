@@ -103,7 +103,7 @@ describe('util test', () => {
         expect(x).toEqual(new Uint8Array([0x22, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]));
     });
 
-    it('encryptDataBlock', () => {
+    it('encryptChunk', () => {
         const blockIdx = 34;
         const seqNo = 9;
         const key = new Uint8Array([
@@ -143,7 +143,7 @@ describe('util test', () => {
             0x10
         ]);
 
-        const cipher = util.encryptDataBlock(blockIdx, seqNo, key, plaintext);
+        const cipher = util.encryptChunk(blockIdx, seqNo, key, plaintext);
         expect(cipher).toEqual(
             new Uint8Array([147, 173, 195, 133, 47, 251, 1, 68, 142, 164, 72, 71, 183, 78, 52, 82])
         );

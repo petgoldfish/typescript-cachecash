@@ -12,7 +12,7 @@ case "$BUILD_MODE" in
 
         cd go-cachecash
         echo "[*] Starting docker-compose deployment..."
-        #docker-compose build
+        docker-compose build
         docker-compose up -d
 
         echo "[*] Waiting until escrow is setup..."
@@ -20,7 +20,7 @@ case "$BUILD_MODE" in
         cd ..
 
         echo "[*] Waiting for network to become healthy..."
-        while ! psql 'host=127.0.0.1 port=5432 user=postgres dbname=publisher sslmode=disable' -c 'select 1;'; do sleep 10; done
+        while ! psql 'host=127.0.0.1 port=5434 user=postgres dbname=publisher sslmode=disable' -c 'select 1;'; do sleep 10; done
 
         npm run integration
         ;;

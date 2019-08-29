@@ -18,7 +18,7 @@ export class ClientPublisher {
     static readonly GetContent: ClientPublisherGetContent;
 }
 
-type ClientCacheGetBlock = {
+type ClientCacheGetChunk = {
     readonly methodName: string;
     readonly service: typeof ClientCache;
     readonly requestStream: false;
@@ -47,7 +47,7 @@ type ClientCacheExchangeTicketL2 = {
 
 export class ClientCache {
     static readonly serviceName: string;
-    static readonly GetBlock: ClientCacheGetBlock;
+    static readonly GetChunk: ClientCacheGetChunk;
     static readonly ExchangeTicketL1: ClientCacheExchangeTicketL1;
     static readonly ExchangeTicketL2: ClientCacheExchangeTicketL2;
 }
@@ -123,14 +123,14 @@ interface UnaryResponse {
 interface ResponseStream<T> {
     cancel(): void;
     on(type: 'data', handler: (message: T) => void): ResponseStream<T>;
-    on(type: 'end', handler: () => void): ResponseStream<T>;
+    on(type: 'end', handler: (status?: Status) => void): ResponseStream<T>;
     on(type: 'status', handler: (status: Status) => void): ResponseStream<T>;
 }
 interface RequestStream<T> {
     write(message: T): RequestStream<T>;
     end(): void;
     cancel(): void;
-    on(type: 'end', handler: () => void): RequestStream<T>;
+    on(type: 'end', handler: (status?: Status) => void): RequestStream<T>;
     on(type: 'status', handler: (status: Status) => void): RequestStream<T>;
 }
 interface BidirectionalStream<ReqT, ResT> {
@@ -138,7 +138,7 @@ interface BidirectionalStream<ReqT, ResT> {
     end(): void;
     cancel(): void;
     on(type: 'data', handler: (message: ResT) => void): BidirectionalStream<ReqT, ResT>;
-    on(type: 'end', handler: () => void): BidirectionalStream<ReqT, ResT>;
+    on(type: 'end', handler: (status?: Status) => void): BidirectionalStream<ReqT, ResT>;
     on(type: 'status', handler: (status: Status) => void): BidirectionalStream<ReqT, ResT>;
 }
 
@@ -167,7 +167,7 @@ export class ClientCacheClient {
     readonly serviceHost: string;
 
     constructor(serviceHost: string, options?: grpc.RpcOptions);
-    getBlock(
+    getChunk(
         requestMessage: cachecash_pb.ClientCacheRequest,
         metadata: grpc.Metadata,
         callback: (
@@ -175,7 +175,7 @@ export class ClientCacheClient {
             responseMessage: cachecash_pb.ClientCacheResponseData | null
         ) => void
     ): UnaryResponse;
-    getBlock(
+    getChunk(
         requestMessage: cachecash_pb.ClientCacheRequest,
         callback: (
             error: ServiceError | null,

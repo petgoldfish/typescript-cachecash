@@ -16,7 +16,7 @@ const aesjs = require('aes-js');
 
 export const AesBlockSize = 16; // aes.BlockSize
 
-// TODO: encryptDataBlock is used to encrypt and decrypt
+// TODO: encryptChunk is used to encrypt and decrypt
 export function encryptBlock(
     plaintext: Uint8Array,
     key: Uint8Array,
@@ -52,7 +52,7 @@ export function incrementIV(iv: Uint8Array, counter: number) {
 // XXX: This function and EncryptBlock, which encrypts a signle *cipher* block, need names that are less likely to cause
 // confusion.
 // Also decrypts blocks, since we're using AES in the CTR mode.
-export function encryptDataBlock(
+export function encryptChunk(
     blockIdx: number,
     reqSeqNo: number,
     sessionKey: Uint8Array,
@@ -267,7 +267,7 @@ export function addPuzzleInfoCanonicalDigest(m: ColocationPuzzleInfo): Uint8Arra
 
 export function ticketRequestCanonicalDigest(m: TicketRequest): Uint8Array {
     let h = new sha384();
-    h.update(uint64ToLE(m.getBlockIdx()));
+    h.update(uint64ToLE(m.getChunkIdx()));
     h.update((m.getInnerKey() as BlockKey).getKey_asU8());
     h.update((m.getCachePublicKey() as PublicKey).getPublicKey_asU8());
     let digest = h.digest();
