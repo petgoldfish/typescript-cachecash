@@ -35,7 +35,7 @@
     "prebuild": "rimraf dist",
     "start:basic": "npm run build && parcel serve -d demoout demo/basic/index.html",
     "start:bigbuckbunny": "npm run build && parcel serve -d demoout demo/bigbuckbunny/index.html",
-    "start:ubuntu-iso": "npm run build && parcel serve -d demoout demo/ubuntu-iso/index.html",
+    "start:html5-download": "npm run build && parcel serve -d demoout demo/html5-download/index.html",
     "start": "npm run start:bigbuckbunny",
     "test": "jest --coverage",
     "test:watch": "jest --coverage --watch",
