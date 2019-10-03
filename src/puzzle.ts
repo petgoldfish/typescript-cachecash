@@ -94,7 +94,7 @@ export class Puzzle {
         }
 
         if (params.rounds * blocks.length <= 1) {
-            // XXX: Using a single ruond and a single cache is a silly idea, but `runPuzzle` will fail with those inputs.
+            // XXX: Using a single round and a single cache is a silly idea, but `runPuzzle` will fail with those inputs.
             throw new Error(
                 'must use at least two puzzle iterations; increase number of rounds or caches'
             );
@@ -115,7 +115,7 @@ export class Puzzle {
         }
 
         if (this.params.rounds * blocks.length <= 1) {
-            // XXX: Using a single ruond and a single cache is a silly idea, but `runPuzzle` will fail with those inputs.
+            // XXX: Using a single round and a single cache is a silly idea, but `runPuzzle` will fail with those inputs.
             throw new Error(
                 'must use at least two puzzle iterations; increase number of rounds or caches'
             );
