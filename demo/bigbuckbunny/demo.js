@@ -138,7 +138,7 @@ async function runTransfer(path, cb, done) {
     done();
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+async function setupVideo() {
     var video = document.getElementById('player');
 
     var mimeCodec = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
@@ -192,4 +192,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         );
     }
-});
+}
+
+document.addEventListener('DOMContentLoaded', setupVideo);
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    // Raced with DOMContentLoaded; just do it directly
+    setupVideo();
+}

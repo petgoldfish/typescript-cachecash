@@ -92,7 +92,7 @@ function download(path) {
 
 	runTransfer(
 		path,
-		function(event) {
+		function (event) {
 			progressBar.max = event.totalSize;
 
 			if (!data) {
@@ -111,18 +111,25 @@ function download(path) {
 				label.textContent = humanifySpeed(cursor / seconds);
 			}
 		},
-		function() {
+		function () {
 			invokeSaveDialog(new Blob([data]), 'ubuntu.iso');
 			console.log('done');
 		}
 	);
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+async function setupButton() {
 	const path = '/frag_bunny.mp4';
 	// const path = '/ubuntu-18.04.3-desktop-amd64.iso';
 
 	document.getElementById('download-button').addEventListener('click', () => {
 		download(path);
 	});
-});
+}
+
+document.addEventListener('DOMContentLoaded', setupButton);
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+	// Raced with DOMContentLoaded; just add the listener directly.
+	setupButton();
+}
