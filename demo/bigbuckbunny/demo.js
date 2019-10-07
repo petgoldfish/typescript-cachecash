@@ -1,8 +1,13 @@
-const cachecash = require('../../browser/browser'); // '../dist/index' for NodeJS
 const hostName = process.env.PUBLISHER_HOST || 'localhost';
+import {
+    PublicKey
+} from '../../src/proto/cachecash_pb';
+import {
+    Client
+} from '../../src/client';
 
 async function runTransfer(path, cb, done) {
-    var pubkey = new cachecash.PublicKey();
+    var pubkey = new PublicKey();
     pubkey.setPublicKey(
         new Uint8Array([
             0,
@@ -107,7 +112,7 @@ async function runTransfer(path, cb, done) {
     ]);
 
     console.time('fetch');
-    var cl = (window.client = new cachecash.Client(
+    var cl = (window.client = new Client(
         'http://' + hostName + ':8043',
         pubkey,
         privkey
