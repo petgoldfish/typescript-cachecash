@@ -1,0 +1,55 @@
+//! Test suite for the Web and headless browsers.
+
+#![cfg(target_arch = "wasm32")]
+
+extern crate wasm_bindgen_test;
+use wasm_bindgen_test::*;
+
+use cachecash_wasm::*;
+
+wasm_bindgen_test_configure!(run_in_browser);
+
+fn make_array(a: Vec<u8>) -> js_sys::Uint8Array {
+    let r = js_sys::Uint8Array::new_with_length(a.len() as u32);
+    unsafe {
+        let t = js_sys::Uint8Array::view(&a);
+        r.set(&t, 0);
+    }
+    r
+}
+
+#[wasm_bindgen_test]
+fn go_puzzle_crosscheck() {
+    assert_eq!(1 + 1, 2);
+    let mut s = Solver::new();
+    s.push_chunk(make_array(vec![
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    ]));
+    s.push_chunk(make_array(vec![
+        16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+    ]));
+    s.push_chunk(make_array(vec![
+        32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
+    ]));
+    s.push_chunk(make_array(vec![
+        48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
+    ]));
+    let goal = [
+        0x11, 0x88, 0x53, 0xf9, 0x6d, 0xc6, 0x70, 0xe9, 0xd6, 0x6a, 0xab, 0xee, 0xf3, 0x4a, 0xed,
+        0x53, 0x5d, 0x2, 0xd2, 0xa9, 0x2b, 0xf0, 0xe0, 0x80, 0x9e, 0xc9, 0xb3, 0x12, 0xcd, 0xa0,
+        0x83, 0xfc, 0x5a, 0x5c, 0x94, 0x7c, 0xef, 0xba, 0xd7, 0x68, 0xe2, 0x3f, 0x64, 0xef, 0xd8,
+        0x8, 0x87, 0x20,
+    ];
+    assert_eq!(Ok(0), s.solve(2, &goal));
+
+    let expectedSecret: Vec<u8> = vec![
+        0x58, 0x72, 0x17, 0xdd, 0x1e, 0xfd, 0x61, 0x12, 0xb2, 0xb5, 0xb6, 0x41, 0xd2, 0x7a, 0xa5,
+        0xfd, 0x47, 0x2f, 0x27, 0xb6, 0x8f, 0x19, 0x4b, 0x8c, 0x2f, 0x9, 0x2, 0x9e, 0xdb, 0x63,
+        0xca, 0x5f, 0x2b, 0xf4, 0xd0, 0x91, 0x6b, 0xbc, 0x26, 0xa2, 0x92, 0x92, 0xe3, 0x11, 0xae,
+        0x5a, 0xb5, 0x18,
+    ];
+    let mut result = Vec::new();
+    result.resize(48, 0);
+    result.copy_from_slice(&s.rust_secret());
+    assert_eq!(result, expectedSecret);
+}

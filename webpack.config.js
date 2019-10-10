@@ -33,8 +33,12 @@ let targets = ['web', 'node'].map((target) => {
     },
     output: {
       path: path.resolve(__dirname, './dist/' + target),
-      filename: '[name]/bundle.js'
+      filename: '[name]/bundle.js',
+      libraryTarget: "umd",
+      library: "cachecash"
     }
+    // TODO: we should probably mark grpc etc as externals. 
+    // https://webpack.js.org/guides/author-libraries/#authoring-a-library
   });
   return merged;
 });
@@ -43,9 +47,9 @@ let targets = ['web', 'node'].map((target) => {
 let demo = webpackMerge(coreConfig, {
   target: 'web',
   entry: {
-	  basic: "./demo/basic/demo.js",
-	  bigbuckbunny: "./demo/bigbuckbunny/demo.js",
-	  "html5-download": "./demo/html5-download/demo.js"
+    basic: "./demo/basic/bootstrap.js",
+    bigbuckbunny: "./demo/bigbuckbunny/bootstrap.js",
+    "html5-download": "./demo/html5-download/bootstrap.js"
   },
   output: {
     path: path.resolve(__dirname, './dist/demo'),
@@ -54,13 +58,13 @@ let demo = webpackMerge(coreConfig, {
   },
   plugins: [
     new CopyWebpackPlugin([
-	    {from: 'demo/basic/index.html', to: 'basic/index.html'},
-	    {from: 'demo/bigbuckbunny/index.html', to: 'bigbuckbunny/index.html'},
-	    {from: 'demo/html5-download/index.html', to: 'html5-download/index.html'},
-	    {from: 'demo/html5-download/style.css', to: 'html5-download/style.css'} 
+      { from: 'demo/basic/index.html', to: 'basic/index.html' },
+      { from: 'demo/bigbuckbunny/index.html', to: 'bigbuckbunny/index.html' },
+      { from: 'demo/html5-download/index.html', to: 'html5-download/index.html' },
+      { from: 'demo/html5-download/style.css', to: 'html5-download/style.css' }
     ])
   ],
-  });
+});
 targets.push(demo);
 
 module.exports = targets;

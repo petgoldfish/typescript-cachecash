@@ -3,6 +3,14 @@ set -xe
 
 case "$BUILD_MODE" in
     test)
+        cd wasm
+        cargo check
+        cargo check --target wasm32-unknown-unknown --no-default-features
+        cargo check --target wasm32-unknown-unknown --no-default-features --features console_error_panic_hook
+        if [ "$RUST_IS_NIGHTLY" ]; then
+            cargo check --target wasm32-unknown-unknown --no-default-features --features "console_error_panic_hook wee_alloc"
+        fi
+	cd ..
         npm run test:prod
         npm run build
         ;;

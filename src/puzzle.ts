@@ -1,4 +1,16 @@
 import { AesBlockSize, encryptBlock } from './digest';
+let Solver: typeof import("cachecash-wasm").Solver | null = null;
+
+// This is required for the library bundles; the browser bundles use a bootstrap
+// thunk in the browser code, but webpack (and differently parcel) also want an
+// async thunk in the import path for libraries for some reason we haven't
+// tracked down. https://github.com/rustwasm/rust-webpack-template/issues/43#issuecomment-540803148
+async function importWASM(): Promise<typeof import("cachecash-wasm").Solver> {
+    const wasm = await import("cachecash-wasm");
+    Solver = wasm.Solver;
+    return wasm.Solver;
+}
+const SolverImport = importWASM();
 
 const sha384 = require('sha.js').sha384;
 
@@ -15,6 +27,10 @@ export class Parameters {
         this.rounds = rounds;
         this.startOffset = startOffset;
         this.startRange = startRange;
+    }
+
+    public toString = (): string => {
+        return `Parameters {rounds: ${this.rounds}, startOffset: ${this.startOffset}, startRange: ${this.startRange}}`;
     }
 
     validate() {
@@ -82,25 +98,23 @@ export class Puzzle {
         return new Puzzle(result.goal, result.secret, startOffset, params);
     }
 
-    solve(params: Parameters, blocks: Uint8Array[]): Solution {
-        params.validate();
-
+    async solve(params: Parameters, blocks: Uint8Array[]): Promise<Solution> {
         if (blocks.length === 0) {
-            throw new Error('must have at least one data block');
+            throw new Error('Must have at least 1 chunk');
         }
-
-        if (this.goal.length !== Sha2Size384) {
-            throw new Error('goal value must be a SHA-384 digest; its length is wrong');
-        }
-
-        if (params.rounds * blocks.length <= 1) {
-            // XXX: Using a single round and a single cache is a silly idea, but `runPuzzle` will fail with those inputs.
-            throw new Error(
-                'must use at least two puzzle iterations; increase number of rounds or caches'
-            );
-        }
-
-        return runPuzzleFastSolve(blocks, params, this.goal);
+        let timekey = `Puzzle solved offset: ${this.offset} chunks: ${blocks.length}x${blocks[0].length} ${params}`
+        console.time(timekey);
+        let solver = (Solver === null) ? new (await SolverImport)()
+            : new Solver();
+        blocks.forEach((block) => { solver.push_chunk(block) });
+        let wasmResult = new Uint8Array(Sha2Size384);
+        let wasmOffset = solver.solve(params.rounds, this.goal);
+        let wasmSecret = solver.secret();
+        wasmResult.set(wasmSecret);
+        let result = new Solution(wasmResult, wasmOffset);
+        // console.log(`solution found at offset ${result.offset}`)
+        console.timeEnd(timekey);
+        return result;
     }
 
     verify(blocks: Uint8Array[], solution: Solution): Result {
@@ -214,50 +228,6 @@ export function runPuzzle(
     }
 
     return new Result(curLoc, prevLoc);
-}
-
-export function runPuzzleFastSolve(
-    blocks: Uint8Array[],
-    params: Parameters,
-    goal: Uint8Array
-): Solution {
-    // Try all possible starting offsets and look for one that produces the result/goal value we're looking for.
-    for (
-        let startOffset = 0;
-        startOffset < Math.floor(blocks[0].length / AesBlockSize);
-        startOffset++
-    ) {
-        let rounds = params.rounds;
-        let blockQty = blocks.length;
-        let nextOffset = startOffset;
-
-        let curLoc: Uint8Array = new Uint8Array(Sha2Size384);
-        let prevLoc: Uint8Array = curLoc;
-
-        for (let i = 0; i < rounds * blockQty - 1; i++) {
-            const blockIdx = i % blockQty;
-            const offset = nextOffset % Math.floor(blocks[blockIdx].length / AesBlockSize);
-            const begin = offset * AesBlockSize;
-            const end = (offset + 1) * AesBlockSize;
-            const subblock = blocks[blockIdx].slice(begin, end);
-
-            prevLoc = curLoc;
-
-            const h = new sha384();
-            h.update(curLoc);
-            h.update(subblock);
-            let digest = h.digest();
-
-            curLoc = new Uint8Array(digest);
-            nextOffset = new DataView(curLoc.buffer).getUint32(curLoc.length - 4, true); // For little endian
-        }
-
-        if (equalBuffers(goal, curLoc)) {
-            return new Solution(prevLoc, startOffset);
-        }
-    }
-
-    throw new Error('no solution found');
 }
 
 function getCipherBlock(dataBlock: Uint8Array, cipherBlockIdx: number): Uint8Array {

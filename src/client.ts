@@ -242,10 +242,8 @@ export class Client {
         );
 
         console.log('Solving puzzle');
-        console.time('Puzzle solved');
         // TODO: rangeBegin, rangeEnd missing?
-        let solution = puzzle.solve(parameters, singleEncryptedChunks);
-        console.timeEnd('Puzzle solved');
+        let solution = await puzzle.solve(parameters, singleEncryptedChunks);
 
         // Decrypt L2 ticket
         let ticketL2 = decryptTicketL2(
@@ -287,7 +285,7 @@ export class Client {
             if (blockIdx[i] !== rangeBegin + i) {
                 throw new Error(
                     `block at position ${i} has index ${blockIdx[i]}, but expected ${rangeBegin +
-                        i} `
+                    i} `
                 );
             }
         }

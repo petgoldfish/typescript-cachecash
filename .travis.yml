@@ -1,28 +1,38 @@
-language: node_js
+language: rust
+
+addons:
+  firefox: latest
+  chrome: stable
 
 cache:
   directories:
     - ~/.npm
+    - $TRAVIS_HOME/.cache/sccache
+    - $TRAVIS_HOME/.cargo/
+    - $TRAVIS_HOME/.rustup/
+    - wasm/target
 
 # Test only on the most recent stable release.
 matrix:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
   include:
   - os: linux
-    node_js: '10'
-    env:
-    - BUILD_MODE=test
+    rust: stable
+    env: BUILD_MODE=test RUST_BACKTRACE=1 TRAVIS_NODE_VERSION=10
   - os: linux
-    node_js: '11'
-    env:
-    - BUILD_MODE=test
+    rust: stable
+    env: BUILD_MODE=test RUST_BACKTRACE=1 TRAVIS_NODE_VERSION=11
   - os: linux
-    node_js: '8'
-    env:
-    - BUILD_MODE=test
+    rust: nightly
+    env: BUILD_MODE=test RUST_BACKTRACE=1 RUST_IS_NIGHTLY=1 TRAVIS_NODE_VERSION=11
   - os: linux
-    node_js: '11'
-    env:
-    - BUILD_MODE=integration
+    rust: stable
+    env: BUILD_MODE=test RUST_BACKTRACE=1 TRAVIS_NODE_VERSION=8
+  - os: linux
+    rust: stable
+    env: BUILD_MODE=integration RUST_BACKTRACE=1 TRAVIS_NODE_VERSION=11
 
 notifications:
   # Don't email the results of the test runs.
@@ -33,6 +43,17 @@ notifications:
 
 before_install:
 - openssl aes-256-cbc -K $encrypted_8f736568fbd6_key -iv $encrypted_8f736568fbd6_iv -in id_deploykey_go-cachecash.enc -out id_deploykey_go-cachecash -d
+- (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
+- cargo install-update -a
+- rustup target add wasm32-unknown-unknown
+- curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+# npm ci doesn't seem to have a preci hook
+- cd wasm && wasm-pack build && cd ..
+- nvm install $TRAVIS_NODE_VERSION
+
+install:
+- npm ci
 
 before_script:
 - sudo service postgresql stop
@@ -41,6 +62,7 @@ before_script:
 - curl -L https://github.com/docker/compose/releases/download/1.24.0/docker-compose-`uname -s`-`uname -m` > docker-compose
 - chmod +x docker-compose
 - sudo mv docker-compose /usr/local/bin
+
 
 script:
 - ci/run.sh

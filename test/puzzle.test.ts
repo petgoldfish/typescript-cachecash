@@ -49,7 +49,7 @@ function setupSuite(chunkSizeModifier?: number) {
         ciphertextBlocks.push(cb);
     }
 
-    function generateAndSolve(rangeBegin: number, rangeEnd: number) {
+    async function generateAndSolve(rangeBegin: number, rangeEnd: number) {
         let puzzle = Puzzle.generate(
             params,
             plaintextBlocks.slice(rangeBegin, rangeEnd),
@@ -60,7 +60,7 @@ function setupSuite(chunkSizeModifier?: number) {
         expect(puzzle.secret.length).toBe(Sha2Size384);
         expect(puzzle.goal.length).toBe(Sha2Size384);
 
-        let solution = puzzle.solve(params, ciphertextBlocks.slice(rangeBegin, rangeEnd));
+        let solution = await puzzle.solve(params, ciphertextBlocks.slice(rangeBegin, rangeEnd));
 
         // It's only actually important that the secret be the same on both sides, but it would be very odd if multiple
         // offsets led to correct solutions to the puzzle.
@@ -333,7 +333,7 @@ describe('Colocation puzzle solver', () => {
         expect(equal).toBe(false);
     });
 
-    it('throws if no solution found', () => {
+    it('throws if no solution found', async () => {
         let suite = setupSuite();
 
         let puzzle = Puzzle.generate(
@@ -343,25 +343,25 @@ describe('Colocation puzzle solver', () => {
             suite.innerIVs
         );
 
-        expect(() => puzzle.solve(suite.params, [])).toThrow(
-            new Error('must have at least one data block')
+        await expect(puzzle.solve(suite.params, [])).rejects.toEqual(
+            new Error('Must have at least 1 chunk')
         );
 
         puzzle.goal = new Uint8Array(Array(48).fill(0xff));
-        expect(() => puzzle.solve(suite.params, suite.ciphertextBlocks)).toThrow(
-            new Error('no solution found')
+        await expect(puzzle.solve(suite.params, suite.ciphertextBlocks)).rejects.toEqual(
+            new Error('No solution found (WASM)')
         );
 
         puzzle.params.rounds = 1;
-        expect(() => puzzle.solve(suite.params, suite.ciphertextBlocks.slice(0, 1))).toThrow(
+        await expect(puzzle.solve(suite.params, suite.ciphertextBlocks.slice(0, 1))).rejects.toEqual(
             new Error(
-                'must use at least two puzzle iterations; increase number of rounds or caches'
+                'must use at least two puzzle iterations; increase number of rounds or chunks'
             )
         );
 
         puzzle.goal = new Uint8Array([1, 2, 3]);
-        expect(() => puzzle.solve(suite.params, suite.ciphertextBlocks)).toThrow(
-            new Error('goal value must be a SHA-384 digest; its length is wrong')
+        await expect(puzzle.solve(suite.params, suite.ciphertextBlocks)).rejects.toEqual(
+            new Error('Goal is not a SHA-384 digest: wrong length')
         );
     });
 });
