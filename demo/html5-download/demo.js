@@ -5,6 +5,7 @@ import {
 import {
 	Client
 } from '../../src/client';
+import { init_browser } from '../../src/util';
 
 async function runTransfer(path, cb, done) {
 	const pubkey = new PublicKey();
@@ -127,9 +128,4 @@ async function setupButton() {
 	});
 }
 
-document.addEventListener('DOMContentLoaded', setupButton);
-
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-	// Raced with DOMContentLoaded; just add the listener directly.
-	setupButton();
-}
+init_browser(setupButton);

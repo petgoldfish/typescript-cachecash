@@ -7,3 +7,4 @@ export * from './puzzle';
 export * from './digest';
 export * from './common';
 export * from './proto/cachecash_pb';
+export * from './util';

@@ -5,6 +5,7 @@ import {
 import {
     Client
 } from '../../src/client';
+import { init_browser } from '../../src/util';
 
 async function runTransfer(path, cb, done) {
     var pubkey = new PublicKey();
@@ -159,7 +160,7 @@ async function setupVideo() {
         var eof = false;
         sourceBuffer.addEventListener(
             'updateend',
-            function() {
+            function () {
                 if (queue.length) {
                     sourceBuffer.appendBuffer(queue.shift());
                     console.log('removed from queue:', queue.length);
@@ -172,7 +173,7 @@ async function setupVideo() {
 
         runTransfer(
             path,
-            function(buffers) {
+            function (buffers) {
                 buffers.map(buf => {
                     if (!sourceBuffer.updating && !queue.length) {
                         console.log('appending directly');
@@ -183,7 +184,7 @@ async function setupVideo() {
                     }
                 });
             },
-            function() {
+            function () {
                 if (!sourceBuffer.updating && !queue.length) {
                     mediaSource.endOfStream();
                 } else {
@@ -194,9 +195,4 @@ async function setupVideo() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', setupVideo);
-
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    // Raced with DOMContentLoaded; just do it directly
-    setupVideo();
-}
+init_browser(setupVideo);

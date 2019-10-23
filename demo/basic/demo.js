@@ -4,6 +4,7 @@ import {
 import {
     Client
 } from '../../src/client';
+import { init_browser } from '../../src/util';
 
 async function setupDemo() {
     var pubkey = new Uint8Array([
@@ -26,7 +27,7 @@ async function setupDemo() {
 
     function toHexString(byteArray) {
         return Array.prototype.map
-            .call(byteArray, function(byte) {
+            .call(byteArray, function (byte) {
                 return ('0' + (byte & 0xff).toString(16)).slice(-2);
             })
             .join('');
@@ -37,9 +38,4 @@ async function setupDemo() {
     console.timeEnd('fetch');
 }
 
-document.addEventListener("DOMContentLoaded", setupDemo);
-
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    // Raced with DOMContentLoaded; just do it now
-    setupDemo();
-}
+init_browser(setupDemo);
