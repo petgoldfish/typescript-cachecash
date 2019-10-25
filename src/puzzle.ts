@@ -1,17 +1,5 @@
 import { AesBlockSize, encryptBlock } from './digest';
-let Solver: typeof import("cachecash-wasm").Solver | null = null;
-
-// This is required for the library bundles; the browser bundles use a bootstrap
-// thunk in the browser code, but webpack (and differently parcel) also want an
-// async thunk in the import path for libraries for some reason we haven't
-// tracked down. https://github.com/rustwasm/rust-webpack-template/issues/43#issuecomment-540803148
-async function importWASM(): Promise<typeof import("cachecash-wasm").Solver> {
-    const wasm = await import("cachecash-wasm");
-    Solver = wasm.Solver;
-    return wasm.Solver;
-}
-const SolverImport = importWASM();
-
+import { WASM, WASMImport } from './wasm';
 const sha384 = require('sha.js').sha384;
 
 export const Sha2Size384 = 48; // sha512.Size384
@@ -104,8 +92,8 @@ export class Puzzle {
         }
         let timekey = `Puzzle solved offset: ${this.offset} chunks: ${blocks.length}x${blocks[0].length} ${params}`
         console.time(timekey);
-        let solver = (Solver === null) ? new (await SolverImport)()
-            : new Solver();
+        let solver = (WASM === null) ? new ((await WASMImport).Solver)()
+            : new WASM.Solver();
         blocks.forEach((block) => { solver.push_chunk(block) });
         let wasmResult = new Uint8Array(Sha2Size384);
         let wasmOffset = solver.solve(params.rounds, this.goal);
