@@ -1,3 +1,4 @@
+mod keys;
 mod utils;
 
 use sha2::{Digest, Sha384};

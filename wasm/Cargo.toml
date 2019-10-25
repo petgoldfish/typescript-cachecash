@@ -8,7 +8,6 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-
 default = ["console_error_panic_hook"]
 
 [dependencies]
@@ -29,6 +28,15 @@ wee_alloc = { version = "0.4.2", optional = true }
 
 js-sys = "0.3"
 sha2 = "0.8"
+
+# Update to rand 0.7 when ed25519 releases 1.0 - https://github.com/dalek-cryptography/ed25519-dalek/pull/101
+rand= { version="0.6", features=["wasm-bindgen"]}
+rand_core="0.5.1"
+rand_os="0.2.2"
+
+[dependencies.ed25519-dalek]
+version = "0.9.1"
+# features = ["serde"]
 
 
 [dev-dependencies]
