@@ -1,6 +1,12 @@
 language: rust
 
 addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+      - llvm-toolchain-trusty
+    packages:
+      - clang-9
   firefox: latest
   chrome: stable
 
@@ -20,19 +26,19 @@ matrix:
   include:
   - os: linux
     rust: stable
-    env: BUILD_MODE=test RUST_BACKTRACE=1 TRAVIS_NODE_VERSION=10
+    env: BUILD_MODE=test RUST_BACKTRACE=1 TRAVIS_NODE_VERSION=10 CXX=clang-9 CC=clang-9
   - os: linux
     rust: stable
-    env: BUILD_MODE=test RUST_BACKTRACE=1 TRAVIS_NODE_VERSION=11
+    env: BUILD_MODE=test RUST_BACKTRACE=1 TRAVIS_NODE_VERSION=11 CXX=clang-9 CC=clang-9
   - os: linux
     rust: nightly
-    env: BUILD_MODE=test RUST_BACKTRACE=1 RUST_IS_NIGHTLY=1 TRAVIS_NODE_VERSION=11
+    env: BUILD_MODE=test RUST_BACKTRACE=1 RUST_IS_NIGHTLY=1 TRAVIS_NODE_VERSION=11 CXX=clang-9 CC=clang-9
   - os: linux
     rust: stable
-    env: BUILD_MODE=test RUST_BACKTRACE=1 TRAVIS_NODE_VERSION=8
+    env: BUILD_MODE=test RUST_BACKTRACE=1 TRAVIS_NODE_VERSION=8 CXX=clang-9 CC=clang-9
   - os: linux
     rust: stable
-    env: BUILD_MODE=integration RUST_BACKTRACE=1 TRAVIS_NODE_VERSION=11
+    env: BUILD_MODE=integration RUST_BACKTRACE=1 TRAVIS_NODE_VERSION=11 CXX=clang-9 CC=clang-9
 
 notifications:
   # Don't email the results of the test runs.
@@ -47,7 +53,6 @@ before_install:
 - cargo install-update -a
 - rustup target add wasm32-unknown-unknown
 - curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
 # npm ci doesn't seem to have a preci hook
 - cd wasm && wasm-pack build && cd ..
 - nvm install $TRAVIS_NODE_VERSION
