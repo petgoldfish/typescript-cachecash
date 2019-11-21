@@ -35,7 +35,7 @@
     "lint": "tslint  --project tsconfig.json -t codeFrame --exclude src/proto/cachecash_pb.d.ts 'src/**/*.ts' 'test/**/*.ts'",
     "prebuild": "rimraf dist && cd wasm && wasm-pack build",
     "prestart": "cd wasm && wasm-pack build",
-    "start": "webpack-dev-server --port 1234 --content-base dist",
+    "start": "webpack-dev-server --host 0.0.0.0 --port 1234 --content-base dist",
     "pretest": "cd wasm && wasm-pack build -t nodejs",
     "test": "jest --coverage",
     "test:watch": "jest --coverage --watch",
