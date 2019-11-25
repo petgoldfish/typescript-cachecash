@@ -16,3 +16,7 @@ docs
 /.cache/
 /browser/
 /demoout/
+/wasm/target
+/wasm/.bin
+/wasm/.pkg
+/wasm/wasm-pack.log
