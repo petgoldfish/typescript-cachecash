@@ -1,4 +1,4 @@
-const hostName = process.env.PUBLISHER_HOST || 'localhost';
+const origin = process.env.PUBLISHER_ADDR || 'http://localhost:8043';
 import {
     PublicKey
 } from '../../src/proto/cachecash_pb';
@@ -14,7 +14,7 @@ async function runTransfer(path, cb, done) {
     pubkey.setPublicKey(clientKey.public());
     console.time('fetch');
     var cl = (window.client = new Client(
-        'http://' + hostName + ':8043',
+        origin,
         pubkey,
         clientKey.secret()
     ));

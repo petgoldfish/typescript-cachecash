@@ -13,5 +13,5 @@ COPY . .
 ENV PUBLISHER_ADDR=http://localhost:8043
 # NPM drops privileges when building wasm files without --unsafe-perm, but the target dir is root owned
 RUN npm install --unsafe-perm --verbose
-CMD ["tools/docker-entry.sh"]
+CMD ["npm", "start"]
 

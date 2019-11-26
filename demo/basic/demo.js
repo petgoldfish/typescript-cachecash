@@ -1,3 +1,4 @@
+const origin = process.env.PUBLISHER_ADDR || 'http://localhost:8043';
 import {
     PublicKey
 } from '../../src/proto/cachecash_pb';
@@ -13,7 +14,7 @@ async function setupDemo() {
     pubkey.setPublicKey(clientKey.public());
 
     console.time('fetch');
-    var cl = window.client = new Client('http://localhost:8043', pubkey,
+    var cl = window.client = new Client(origin, pubkey,
         clientKey.secret());
     console.log('created client');
 
