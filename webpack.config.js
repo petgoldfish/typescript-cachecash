@@ -1,6 +1,7 @@
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const path = require('path');
 const webpackMerge = require('webpack-merge');
+const webpack = require('webpack');
 
 
 var coreConfig = {
@@ -62,7 +63,10 @@ let demo = webpackMerge(coreConfig, {
       { from: 'demo/bigbuckbunny/index.html', to: 'bigbuckbunny/index.html' },
       { from: 'demo/html5-download/index.html', to: 'html5-download/index.html' },
       { from: 'demo/html5-download/style.css', to: 'html5-download/style.css' }
-    ])
+    ]),
+    new webpack.DefinePlugin({
+      'process.env.PUBLISHER_ADDR': JSON.stringify(process.env.PUBLISHER_ADDR),
+    })
   ],
 });
 targets.push(demo);
