@@ -61,6 +61,7 @@ let demo = webpackMerge(coreConfig, {
     new CopyWebpackPlugin([
       { from: 'demo/basic/index.html', to: 'basic/index.html' },
       { from: 'demo/bigbuckbunny/index.html', to: 'bigbuckbunny/index.html' },
+      { from: 'demo/bigbuckbunny/style.css', to: 'bigbuckbunny/style.css' },
       { from: 'demo/html5-download/index.html', to: 'html5-download/index.html' },
       { from: 'demo/html5-download/style.css', to: 'html5-download/style.css' }
     ]),

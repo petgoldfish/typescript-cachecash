@@ -5,14 +5,17 @@ import {
 import {
 	Client
 } from '../../src/client';
-import { init_browser } from '../../src/util';
+import { init_browser, Logger } from '../../src/util';
 import { NewKey } from '../../src/key';
+
+const logger = new Logger().install();
 
 async function runTransfer(path, cb, done) {
 	const clientKey = await NewKey();
 	const pubkey = new PublicKey();
 	pubkey.setPublicKey(clientKey.public());
 
+	logger.startTimer();
 	console.time('fetch');
 	const cl = (window.client = new Client(
 		origin,
@@ -114,6 +117,7 @@ function download(path) {
 		function () {
 			invokeSaveDialog(new Blob([data]), 'ubuntu.iso');
 			console.log('done');
+			downloadManager.hidden = true;
 		}
 	);
 }

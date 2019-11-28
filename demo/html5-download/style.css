@@ -1,12 +1,39 @@
-body {
-    background: #000000;
+main {
+    display: flex;
 }
 
 #content {
-    max-width: 700px;
-    background: #ffffff;
-    margin: 30px auto;
-    padding: 15px;
+    display: inline-block;
+    height: 480px;
+    width: 854px;
+    margin-right: 25px;
+}
+
+button {
+    padding: 15px 25px;
+    font-size: 24px;
+    text-align: center;
+    cursor: pointer;
+    outline: none;
+    color: #fff;
+    background-color: #4CAF50;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 9px #999;
+}
+
+button:hover {
+    background-color: #3e8e41;
+}
+
+button:active {
+    background-color: #3e8e41;
+    box-shadow: 0 5px #666;
+    transform: translateY(4px);
+}
+
+button::-moz-focus-inner {
+    border: 0;
 }
 
 #download-manager {
@@ -27,4 +54,19 @@ body {
 
 #download-manager progress {
     width: 80%;
+}
+
+.console {
+    display: inline-block;
+    background-color: #111111;
+    height: 470px;
+    width: 750px;
+    padding: 5px;
+    overflow: auto;
+}
+pre {
+    color: #00cc00;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    overflow: hidden;
 }

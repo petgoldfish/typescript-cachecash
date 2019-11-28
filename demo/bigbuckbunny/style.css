@@ -1,0 +1,24 @@
+main {
+    display: flex;
+}
+
+video {
+    height: 480px;
+    width: 854px;
+    background: black;
+    margin-right: 25px;
+}
+.console {
+    display: inline-block;
+    background-color: #111111;
+    height: 470px;
+    width: 750px;
+    padding: 5px;
+    overflow: auto;
+}
+pre {
+    color: #00cc00;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}

@@ -2,16 +2,13 @@
 <html>
     <head>
         <meta charset="utf-8">
+        <link rel="stylesheet" href="style.css">
         <script src="bundle.js"></script>
-        <style>
-        video {
-            height: 480px;
-            width: 854px;
-            background: black;
-        }
-        </style>
+        <script>location.href.endsWith('/')||(location.href+='/')</script>
     </head>
     <body>
         <video id="player" controls></video>
+
+        <div class="console"><pre id="console"></pre><div id="scroll"></div></div>
     </body>
 </html>

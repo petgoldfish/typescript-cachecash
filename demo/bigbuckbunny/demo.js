@@ -5,13 +5,17 @@ import {
 import {
     Client
 } from '../../src/client';
-import { init_browser } from '../../src/util';
+import { init_browser, Logger } from '../../src/util';
 import { NewKey } from '../../src/key';
+
+const logger = new Logger().install();
 
 async function runTransfer(path, cb, done) {
     const clientKey = await NewKey();
     var pubkey = new PublicKey();
     pubkey.setPublicKey(clientKey.public());
+
+    logger.startTimer();
     console.time('fetch');
     var cl = (window.client = new Client(
         origin,
@@ -90,6 +94,7 @@ async function setupVideo() {
                 } else {
                     eof = true;
                 }
+                console.log('done');
             }
         );
     }
