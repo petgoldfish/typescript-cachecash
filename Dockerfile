@@ -1,8 +1,8 @@
 FROM node:buster
 RUN apt-get -y update && apt-get -y install lsb-release software-properties-common
 # clear_on_drop requires either nightly rust or clang 9 or newer; buster shipped with 7.
-ENV CC=clang-9
-ENV CXX=clang-9
+ENV CC=clang-11
+ENV CXX=clang-11
 RUN bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
 RUN apt-get -y install python make g++
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
